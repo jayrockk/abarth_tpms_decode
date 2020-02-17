@@ -3,197 +3,214 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <Arduino.h>
 
 #ifndef byte
 typedef unsigned char byte;
 #endif
 
-/*#ifndef boolean
-typedef byte boolean;
-#endif*/
+#ifndef bool
+typedef byte bool;
+#endif
 
 #ifndef TRUE
 # define FALSE 0
 # define TRUE (!FALSE)
 #endif
 
-/*************** input data ***************************/
-
-/*const byte timings[] = {
-    100,60,48,52,52,52,52,52,52,52,56,52,52,52,52,52,52,52,52,52,56,52,52,52,52,52,52,52,52,104,104,60,48,52,56,48,52,104,52,52,56,52,52,52,104,52,52,108,48,52,56,52,104,52,52,52,56,100,52,56,104,52,52,104,104,104,60,48,104,52,52,104,104,108,56,48,52,56,48,52,104,104,60,48,104,52,52,104,52,52,56,52,52,52,104,52,52,104,52,56,52,52,104,100,112,52,48,108,52,52,52,52,52,52,52,52,104,104,60,48,52,56,100,52,52,104,104,52,56,104,52,52,52,56,52,52,104,56,48,104,52,52,52,56,104,52,52,104,100
-};/*
 
 /********************************************************/
 
-#define MAX_BITS   256
-#define MAX_BYTES  ((MAX_BITS + 7) / 8)
+typedef unsigned int bitLength_t;
+typedef byte byteLength_t;
+
+/* Max number of bits supported in bitArray_t */
+#define MAX_BITS   255
+#define MAX_BITS_ARRAY ((MAX_BITS + 7) / 8)
+
+/* Max number of bytes supported in byteArray_t */
+#define MAX_BYTES   20
+
+/*
+ * Both structures MUST be cleared before usage!
+ *
+ * Call:
+ *   void clear_bit_array( bitArray_t *data);
+ *   void clear_byte_array( byteArray_t *data);
+ */
 
 typedef struct bitArray_t {
-    int bit_count;
-    byte bits[MAX_BYTES];    
+    bitLength_t capacity;
+    bitLength_t length;
+    byte bits[MAX_BITS_ARRAY];    
 } bitArray_t;
 
 typedef struct byteArray_t {
-    int byte_count;
+    byteLength_t capacity;
+    byteLength_t length;
     byte bytes[MAX_BYTES];
 } byteArray_t;
 
 
 /****************** PARAMETERS ***************************/
 
-const byte preamble_length = 16;
-const byte preamble[] = { 0xAA, 0xA9 };
-
 #define MANCHESTER_DECODING_MASK  0b1010101010101010
 
 /* Pulse range in micro seconds */
-#define MIN_SHORT_usec   ((byte) 30)
-#define MAX_SHORT_usec   ((byte) 70)
+#define MIN_SHORT_usec   ((byte) 20)
 #define MIN_LONG_usec    ((byte) 80)
-#define MAX_LONG_usec    ((byte)130)
-#define MIN_SYNC_usec    ((byte)175)
 
 /* Pulse type */
 #define INVALID ((byte)0)
 #define SHORT   ((byte)1)
 #define LONG    ((byte)2)
-#define SYNC    ((byte)3)
 
 
 /***************** forward defines **********************/
 
 void clear_bit_array( bitArray_t *data);
 void print_bit_array( bitArray_t *bits);
-boolean get_bit( bitArray_t *data, byte bitno);
-void set_bit( bitArray_t *data, byte bitno, boolean value);
+bool get_bit( bitArray_t *data, bitLength_t bitno);
+void set_bit( bitArray_t *data, bitLength_t bitno, bool value);
 
 void clear_byte_array( byteArray_t *data);
 void print_byte_array( byteArray_t *bytes);
-int pulse_type( byte time);
-void bit_decode( const byte timing[], int count, boolean start_value, bitArray_t *data);
+byte get_byte( byteArray_t *data, byteLength_t byteno);
+void append_byte( byteArray_t *data, byte value);
 
-byte find_preamble( bitArray_t *data);
+byte pulse_type( byte time);
+void bit_decode( const byte timing[], unsigned int count, bool start_value, bitArray_t *data);
 
-void manchester_decode( bitArray_t *bits, int start, byteArray_t *data);
+bitLength_t find_preamble( bitArray_t *data, bitArray_t *preamble);
 
-boolean checksum_xor( byteArray_t *data);
+void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data);
 
-void unit_test_bits();
-void unit_test_manchester();
+bool checksum_xor( byteArray_t *data);
 
 /********************************************************/
 
 int wolfgang_main()
 {
+    bitArray_t preamble;
     bitArray_t decoded_bits;   // Decoded timing bits
     byteArray_t data;          // Manchester decoded bytes
 
-    byte data_start;           // Data start after preamble
+    bitLength_t data_start;           // Data start after preamble
     
     byte a_byte;
-    byte start;
 
-    
-    // unit_test_bits();
-    // unit_test_manchester();
 
+    clear_byte_array( &data);
     
-    // Wir versuchen mit start level TRUE 
-    Serial.print("Trying start value: TRUE\n");
-    //bit_decode( Timings, sizeof(Timings)/sizeof(byte), TRUE, &decoded_bits);
+    /* Create a bit array that contains the preamble. 
+     * It is easier to handle.
+     */
+    clear_bit_array( &preamble);
+    preamble.bits[0] = 0xAA;
+    preamble.bits[1] = 0xA9;
+    preamble.length = 16;
+
     bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
-    data_start = find_preamble( &decoded_bits);
-
-    /*if( data_start == 0) {
-        // Hat nicht funktioniert, nochmal mit FALSE 
-        Serial.print("Trying start value: FALSE\n");
-        bit_decode( Timings, sizeof(Timings)/sizeof(byte), FALSE, &decoded_bits);
-        data_start = find_preamble( &decoded_bits);
-    }*/
+    data_start = find_preamble( &decoded_bits, &preamble);
     
     print_bit_array( &decoded_bits);
 
     if( data_start == 0) {
-        Serial.print( "Preamble not found\n\n");
+        Serial.println( "Preamble not found");
         
     } else {
-        Serial.print("Preamble found. Data starts at index ");
-        Serial.println(data_start);
-        //Serial.print(F("Preamble found. Data starts at index %d\n\n", data_start);
+        Serial.print( "Preamble found. Data starts at index ");
+        Serial.println( data_start);
         
         manchester_decode( &decoded_bits, data_start, &data);
 
-        Serial.print("Manchester decode found ");
-        Serial.print(data.byte_count);
-        Serial.println(" bytes\n");
-
+        Serial.print( "Manchester decode found ");
+        Serial.print( data.length);
+        Serial.println( " bytes");
+        
         print_byte_array( &data);
 
         if( checksum_xor( &data)) {
-            Serial.print("\nChecksum OK\n\n");
+            Serial.println("Checksum OK");
 
-            Serial.print("ID      : ");//%02x %02x %02x %02x\n",
-            Serial.print(data.bytes[0]);
-            Serial.print(data.bytes[1]);
-            Serial.print(data.bytes[2]);
-            Serial.print(data.bytes[3]);            
-            //;,data.bytes[1],data.bytes[2],data.bytes[3]);
+            Serial.print("ID      : ");
+            Serial.print( data.bytes[0], HEX);
+            Serial.print( data.bytes[1], HEX);
+            Serial.print( data.bytes[2], HEX);
+            Serial.println( data.bytes[3], HEX);
             
             Serial.print("Pressure: ");
-            Serial.println((double)data.bytes[5] * 1.38 / 100);
-            Serial.print("Temp    : ");
-            Serial.println(data.bytes[6] - 50);
+            Serial.println( (float)data.bytes[5] * 1.38 / 100);
             
+            Serial.print("Temp    : ");
+            Serial.println( data.bytes[6] - 50);
+
         } else {
-            Serial.print("\nChecksum FAIILED\n");
+            Serial.println("Checksum FAIILED");
         }
     }
+
+    return data.length;
 }
 
 /********************************************************/
 
-void clear_bit_array( bitArray_t *data)
+void clear_bit_array( bitArray_t *bits)
 {
-    int i;
+    bitLength_t i;
 
-    data->bit_count = 0;
+    bits->length = 0;
+    bits->capacity = MAX_BITS;
 
-    for( i = 0; i < MAX_BYTES; i++) {
-        data->bits[i] = 0;
+    for( i = 0; i < MAX_BITS_ARRAY; i++) {
+        bits->bits[i] = 0;
     }
 }
 
 void print_bit_array( bitArray_t *bits)
 {
-    int i;
+    bitLength_t i;
     
-    for( i = 0; i < bits->bit_count; i++) {
-        //Serial.print("%c", get_bit( bits, i) ? '1' : '0');
-        Serial.print(get_bit( bits, i) ? '1' : '0');
+    for( i = 0; i < bits->length; i++) {
+        Serial.print( get_bit( bits, i) ? '1' : '0');
+        
         if( ((i+1) % 40) == 0) { /* Newline every 40 bits */
-            Serial.print("\n");
+            Serial.println();
         }
     }
-    Serial.print("\n\n");
+    Serial.println();
 }
 
 /* 
  * Bitno starts at 0.
  */
-boolean get_bit( bitArray_t *data, byte bitno)
+bool get_bit( bitArray_t *bits, bitLength_t bitno)
 {
-    return (data->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? TRUE : FALSE;
+    if( bitno < bits->capacity) {
+        return (bits->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? TRUE : FALSE;
+    } else {
+        Serial.println("ERROR IN get_bit(): byteno >= capacity");
+        return FALSE;
+    }
 }
 
-void set_bit( bitArray_t *data, byte bitno, boolean value)
+/* 
+ * Bitno starts at 0.
+ * This funktion also adjusts bits->length.
+ */
+void set_bit( bitArray_t *bits, bitLength_t bitno, bool value)
 {
-    if( value) {
-        data->bits[bitno/8] |= (byte)(1 << (7-(bitno % 8)));
+    if( bitno < bits->capacity) {
+        if( value) {
+            bits->bits[bitno/8] |= (byte)(1 << (7-(bitno % 8)));
+        } else {
+            bits->bits[bitno/8] &= ~((byte)(1 << (7-(bitno % 8))));
+        }
+        if( bitno >= bits->length) {
+            bits->length = bitno +1;
+        }
     } else {
-        data->bits[bitno/8] &= ~((byte)(1 << (7-(bitno % 8))));
+        Serial.println("ERROR IN set_bit(): byteno >= capacity");
     }
 }
 
@@ -201,10 +218,11 @@ void set_bit( bitArray_t *data, byte bitno, boolean value)
 
 void clear_byte_array( byteArray_t *data)
 {
-    int i;
+    byteLength_t i;
 
-    data->byte_count = 0;
-
+    data->length = 0;
+    data->capacity = MAX_BYTES;
+    
     for( i = 0; i < MAX_BYTES; i++) {
         data->bytes[i] = 0;
     }
@@ -212,29 +230,57 @@ void clear_byte_array( byteArray_t *data)
 
 void print_byte_array( byteArray_t *bytes)
 {
-    int i;
-    for( i = 0; i < bytes->byte_count; i++) {
-      Serial.print("Byte [");
-      Serial.print(i);
-      Serial.print("] ");
-      Serial.print( bytes->bytes[i], HEX);
-      Serial.println();
+    byteLength_t i;
+
+    for( i = 0; i < bytes->length; i++) {
+        Serial.print("Byte [");
+        Serial.print(i);
+        Serial.print("]: ");
+        Serial.println( bytes->bytes[i], HEX);
+    }
+    Serial.println();
+}
+
+/* 
+ * Byteno starts at 0.
+ */
+byte get_byte( byteArray_t *data, byteLength_t byteno)
+{
+    if( byteno < data->capacity) {
+        return data->bytes[byteno];
+    } else {
+        Serial.println("ERROR IN get_byte(): byteno >= capacity");
+        return 0;
     }
 }
 
-int pulse_type( byte time)
+/* 
+ * Byteno starts at 0.
+ * This funktion also adjusts data->length.
+ */
+void append_byte( byteArray_t *data, byte value)
 {
-    if( time >= MIN_SHORT_usec && time <= MAX_SHORT_usec) {
-        return SHORT;
+    if( data->length < data->capacity) {
+        data->bytes[data->length] = value;
+        data->length++;
+    } else {
+        Serial.println("ERROR IN append_byte(): length >= capacity");
     }
-    if( time >= MIN_LONG_usec && time <= MAX_LONG_usec) {
-        return LONG;
-    }
-    if( time >= MIN_SYNC_usec) {
-        return SYNC;
+}
+
+/********************************************************/
+
+byte pulse_type( byte time_usec)
+{
+    if( time_usec < MIN_SHORT_usec) {
+        return INVALID;
     }
 
-    return INVALID;
+    if( time_usec < MIN_LONG_usec) {
+        return SHORT;
+    }
+
+    return LONG;
 }
 
 /********************************************************/
@@ -249,51 +295,31 @@ int pulse_type( byte time)
  * Return:
  *   nix
  */
-
-
-void bit_decode( const byte timing[], int count, boolean start_value,  bitArray_t *data)
+void bit_decode( const byte timing[], unsigned int count, bool start_value,  bitArray_t *bits)
 {
-    byte i = 0;
-    int bit_count = 0;
-    int timing_len_usec = 0;  
-    boolean level = start_value;
+    unsigned int timing_idx = 0;
+    unsigned int timing_len_usec = 0;
+    bitLength_t bit_count = 0;
+    bool level = start_value;
 
-    Serial.print("Input: ");
-    Serial.print(count);
-    Serial.print(" Timings. i = \n");
+    clear_bit_array( bits);
 
-    if ((count<1) or (count>254)) {
-       Serial.println("count out of range");
-       return;      
-    }
-    
-    clear_bit_array( data);
-
-    for( i = 0; i < count; i++) {
+    for( timing_idx = 0; timing_idx < count; timing_idx++) {
         
-        Serial.println(i); 
+        timing_len_usec += timing[timing_idx];
         
-        timing_len_usec += timing[i];        
-        
-        switch( pulse_type( timing[i] ) ) {
-        case LONG: /* Ergibt 2 Pulse */
-            set_bit( data, bit_count++, level);
+        switch( pulse_type( timing[timing_idx] ) ) {
+        case LONG: /* 2 pulses */
+            set_bit( bits, bit_count++, level);
             /* Fall through */
 
-        case SHORT: /* Ergibt einen Puls */
-            set_bit( data, bit_count++, level);
+        case SHORT: /* 1 pulse */
+            set_bit( bits, bit_count++, level);
             break;
         }
 
         level = !level;
     }
-
-    data->bit_count = bit_count;
-    Serial.print("Output: ");
-    Serial.print(bit_count);
-    Serial.print(" bits. Length ");
-    Serial.print(timing_len_usec);
-    Serial.println(" usec");
 }
 
 /********************************************************/
@@ -306,33 +332,26 @@ void bit_decode( const byte timing[], int count, boolean start_value,  bitArray_
  * Return: > 0    - Start Index nach der Präambel
  *         0      - Keine Präambel gefunden
  */
-byte find_preamble( bitArray_t *data)
+bitLength_t find_preamble( bitArray_t *bits, bitArray_t *preamble)
 {
-    byte bit_idx = 0;
-    byte start = 0;
-    
-    byte saved_start = 0;
-    byte pre_idx = 0;
+    bitLength_t bit_idx = 0;
+    bitLength_t pre_idx = 0;
+    bitLength_t saved_start = 0;
+    bitLength_t data_start = 0;
 
-    byte pre;
-    byte pre_no;
-    
-    while( bit_idx < data->bit_count - preamble_length) {
+    while( bit_idx < bits->length - preamble->length) {
 
         if( pre_idx == 0) { /* Remember start for restart on match failure */
             saved_start = bit_idx;
         }
         
-        pre = preamble[pre_idx/8];
-        pre_no = pre_idx % 8;
-
-        if( get_bit( data, bit_idx) == ((pre & (1 << (7-pre_no))) >> (7-pre_no)) ) { 
+        if( get_bit( bits, bit_idx) == get_bit( preamble, pre_idx) ) { 
             /* Match, advance preamble and bit index */
             pre_idx++;
             bit_idx++;
             
-            if( pre_idx >= preamble_length) { /* All preamble bits found, done */
-                start = bit_idx;
+            if( pre_idx >= preamble->length) { /* All preamble bits found, done */
+                data_start = bit_idx;
                 break;
             }
         } else { /* fail, restart with next bit */
@@ -341,7 +360,7 @@ byte find_preamble( bitArray_t *data)
         }
     }
 
-    return start;
+    return data_start;
 }
 
 /********************************************************/
@@ -349,58 +368,56 @@ byte find_preamble( bitArray_t *data)
 /* Manchester decode geht am einfachsten über ein XOR verknüpfung
  * mit dem Clock Signal  ( 1010101010101.... )
  */
-void manchester_decode( bitArray_t *bits, int start, byteArray_t *data)
+void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data)
 {
-    int i, n;
+    bitLength_t bit_idx;
+    bitLength_t bit_count = 0;
 
     unsigned int an_int = 0;
     byte a_byte = 0;
-    byte bit_count = 0;
+    byte n;
 
     clear_byte_array( data);
     
-    for( i = start; i < bits->bit_count; i++) {
+    for( bit_idx = start; bit_idx < bits->length; bit_idx++) {
 
         an_int <<= 1;
-        an_int |= get_bit( bits, i) ? 1 : 0;
+        an_int |= get_bit( bits, bit_idx) ? 1 : 0;
         bit_count++;
 
         if( bit_count == 16) { /* Decode 16 bits via XOR with clock signal to one byte */
             an_int ^= MANCHESTER_DECODING_MASK;
             a_byte = 0;
             
-            for( n = 0; n < 8; n++) {
+            for( n = 0; n < 8; n++) { /* Convert 16 bits to one byte */
                 a_byte <<= 1;
                 a_byte |= ((an_int & 0xc000) ? 1 : 0);
                 an_int <<= 2;
             }
             
-            data->bytes[data->byte_count++] = a_byte;
+            append_byte( data, a_byte);
             bit_count = 0;
             an_int = 0;
         }
-
-        an_int <<= 1;
-        an_int |= get_bit( bits, i) ? 1 : 0;
-        bit_count++;
     }
 
     if( bit_count > 0) {
         Serial.print("WARNING: ");
         Serial.print(bit_count);
-        Serial.println(" bits left over.\n");
+        Serial.println(" bits left over.");
     }
 }
 
 /* Einfache XOR checksum.
  */
-boolean checksum_xor( byteArray_t *data)
+bool checksum_xor( byteArray_t *data)
 {
+    byteLength_t i;
     byte checksum;
     
-    if( data->byte_count > 2) {
+    if( data->length > 2) {
         checksum = data->bytes[0];
-        for( int i=1; i<data->byte_count; i++) {
+        for( i=1; i<data->length; i++) {
             checksum ^= data->bytes[i];
         }
 
@@ -411,88 +428,3 @@ boolean checksum_xor( byteArray_t *data)
 
     return FALSE;
 }
-
-/*********************** UNIT TESTS *****************************/
-/*********************** UNIT TESTS *****************************/
-/*********************** UNIT TESTS *****************************/
-
-/*void unit_test_manchester()
-{
-    bitArray_t b;
-    byteArray_t data;
-
-    clear_bit_array( &b);
-    clear_byte_array( &data);
-    
-    set_bit( &b, 1, TRUE);
-    set_bit( &b, 2, TRUE);
-    set_bit( &b, 5, TRUE);
-    set_bit( &b, 6, TRUE);
-    set_bit( &b, 8, TRUE);
-    set_bit( &b, 11, TRUE);
-    set_bit( &b, 13, TRUE);
-    set_bit( &b, 15, TRUE);
-    set_bit( &b, 16, TRUE);
-    set_bit( &b, 18, TRUE);
-    set_bit( &b, 21, TRUE);
-    
-    b.bit_count = 22;
-
-    print_bit_array( &b);
-    
-    manchester_decode( &b, 0, &data);
-
-    print_byte_array( &data);
-
-    if( data.bytes[0] == 0xa7) {
-        Serial.print("OK\n");
-    } else {
-        Serial.print("FAILED, expected 0xA7\n");
-    }
-    
-    exit(0);
-}
-
-void unit_test_bits()
-{
-    bitArray_t b;
-    int i;
-    
-    clear_bit_array( &b);
-
-    for( i = 0; i < 16; i += 2) {
-        set_bit( &b, i, TRUE);
-    }
-
-    for( i = 0; i<16; i++) {
-        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
-    }
-    Serial.print( "\n");
-
-    for( i = 0; i < 16; i += 2) {
-        set_bit( &b, i, FALSE);
-        set_bit( &b, i+1, TRUE);
-    }
-
-    for( i = 0; i<16; i++) {
-        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
-    }
-    Serial.print( "\n");
-
-    clear_bit_array( &b);
-
-    for( i = 0; i < 4; i++) {
-        set_bit( &b, i, TRUE);
-    }
-
-    for( i = 12; i < 16; i++) {
-        set_bit( &b, i, TRUE);
-    }
-
-    for( i = 0; i<16; i++) {
-        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
-    }
-    Serial.print( "\n");
-
-    exit(0);
-}*/

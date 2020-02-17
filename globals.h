@@ -41,8 +41,6 @@ unsigned long CD_Width;
 byte StartDataIndex = 0;
 
 
-
-bool IncomingBits[MAXBITS];
 unsigned int BitIndex = 0;
 unsigned int BitCount = 0;
 
@@ -52,9 +50,6 @@ unsigned int RSSIvalue;
 
 
 int RawCount = 0;
-//byte ManchesterRX[64];  //holds received Manchester byte message (converted from the rawdata)
-byte RXBytes[15];  //holds the raw incoming databytes from the CC1101 serial port
-int RXByteCount;
 unsigned long IncomingAddress;
 
 

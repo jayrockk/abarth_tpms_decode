@@ -3,8 +3,8 @@
 #include <SPI.h>
 
 #include "globals.h"
-#include "CC1101.h"
-#include "Display.h"
+#include "cc1101.h"
+#include "display.h"
 #include "abarth_read.h"
 #include "abarth_tpms.h"
 
@@ -81,17 +81,13 @@ void setup() {
 }
 
 void loop() {
-  int i;
+
   static long lastts = millis();
-  float diff;
-  int RXBitCount = 0;
   int ByteCount = 0;
-  boolean TPMS_Changed;
+  bool TPMS_Changed;
 
 
   TPMS_Changed = Check_TPMS_Timeouts();
-
-  InitDataBuffer();
 
   //wait for carrier status to go low
   while (GetCarrierStatus == true)
@@ -103,29 +99,21 @@ void loop() {
   {
   }
 
-  if (GetCarrierStatus() == true)
-  { //looks like some data coming in...
+  if (ReceiveMessage())
+  {
+    Serial.println("jetzt wolfgang_main....");
+
+    ByteCount = wolfgang_main();
+
+    Serial.print( ByteCount);
+    Serial.println( "Bytes decoded");
     
-    ByteCount = ReceiveMessage();
-    /*if (ByteCount > 0)
-    {
-      Serial.print("ByteCount = ");
-      Serial.println(ByteCount);
-    }*/
-    if (ByteCount > 0) //= 9)
-    {
-        Serial.print("ByteCount = ");
-        Serial.println(ByteCount);
-        //PrintData(BitCount);//uncommented by jayrock
-        Serial.println("jetzt wolfgang_main....");
-        wolfgang_main();
-        TPMS_Changed = true;  //indicates the display needs to be updated.
-    }
+    TPMS_Changed = true;  //indicates the display needs to be updated.
+  }
   
     /*if (TPMS_Changed == true)
     {
       UpdateDisplay();
       TPMS_Changed = false;
    }*/
-  }
 }
