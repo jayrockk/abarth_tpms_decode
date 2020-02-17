@@ -1,27 +1,12 @@
-
-
-
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SPI.h>
 
-
-
 #include "globals.h"
 #include "CC1101.h"
 #include "Display.h"
-#include "RenaultRead.h"
-
-
-
-void SendDebug(String Mess)
-{
-  Serial.println(Mess);
-}
-
-
-
-
+#include "abarth_read.h"
+#include "abarth_tpms.h"
 
 void setup() {
 
@@ -35,14 +20,10 @@ void setup() {
   pinMode(CC1101_CS, OUTPUT);
   digitalWrite(CC1101_CS, HIGH);
 
-
   Serial.begin(115200);
-
-
 
   pinMode(LED_RX, OUTPUT);
   pinMode(RXPin, INPUT);
-
 
   SPI.begin();
   //initialise the CC1101
@@ -51,8 +32,6 @@ void setup() {
   delay(2000);
 
   Serial.println("Starting...");
-
-
 
   setIdleState();
   digitalWrite(LED_RX, LED_OFF);
@@ -76,22 +55,14 @@ void setup() {
   Wire.setClock(400000L);
   display.begin(&Adafruit128x64, I2C_ADDRESS);
   display.setFont(Adafruit5x7);
-
 #endif
 
-
-
   Serial.println(F("SSD1306 initialised OK"));
-
 
   digitalWrite(LED_RX, LED_ON);
   LEDState = HIGH;
 
   pinMode(DEBUGPIN, OUTPUT);
-
-#ifndef USE_PROGMEMCRC
-  CalulateTable_CRC8();
-#endif
 
   // Clear the buffer
 #if USE_ADAFRUIT
@@ -110,13 +81,11 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   int i;
   static long lastts = millis();
   float diff;
   int RXBitCount = 0;
   int ByteCount = 0;
-  byte crcResult;
   boolean TPMS_Changed;
 
 
@@ -138,27 +107,16 @@ void loop() {
   { //looks like some data coming in...
     
     ByteCount = ReceiveMessage();
-    //Serial.println(ByteCount);
+    if (ByteCount > 0)
+    {
+      Serial.print("ByteCount = ");
+      Serial.println(ByteCount);
+    }
     if (ByteCount == 9)
     {
-      
-      
-      crcResult = Compute_CRC8(ByteCount);
-
-
-      if (crcResult != 0)
-      {
-        Serial.print(F("CRC: "));      //uncommented by jayrock
-        Serial.println(crcResult, HEX);//uncommented by jayrock
-        Serial.println(F("CRC Check failed"));//uncommented by jayrock
         PrintData(BitCount);//uncommented by jayrock
-      }
-      else
-      {
-        //decode the message...
-        DecodeTPMS();
+        wolfgang_main();
         TPMS_Changed = true;  //indicates the display needs to be updated.
-      }
     }
   
     if (TPMS_Changed == true)
@@ -167,8 +125,4 @@ void loop() {
       TPMS_Changed = false;
    }
   }
-
-
-
-
 }

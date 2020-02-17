@@ -1,4 +1,3 @@
-
 void ClearTPMSData(int i)
 {
   if (i > 4)
@@ -51,14 +50,6 @@ void PrintTimings(byte StartPoint, byte Count)
     Serial.print(F(","));
   }
   Serial.println(F(""));
-  //    for (i = 0;i<Count;i++)
-  //    {
-  //          Serial.print(BitTimings[StartPoint + i]);
-  //          Serial.print(",");
-  //    }
-  //    Serial.println("");
-
-
 }
 
 void PrintData(byte Count)
@@ -147,157 +138,6 @@ boolean Check_TPMS_Timeouts()
   }
   return(ret);
 }
-
-void DecodeTPMS()
-{
-  int i;
-  unsigned long id = 0;
-  unsigned int status, pressure1, pressure2, temp;
-  float realpressure;
-  float realtemp;
-  bool IDFound = false;
-  int prefindex;
-
-  for (i = 5; i >= 3; i--)
-  {
-    id = id << 8;
-    id = id + RXBytes[i];
-
-  }
-
-  // id = (unsigned)RXBytes[0] << 24 | RXBytes[1] << 16 | RXBytes[2] << 8 | RXBytes[3];
-
-  status = RXBytes[0] >> 2;
-
-  pressure1 = (RXBytes[0] & 0x03)  << 8 | RXBytes[1];
-
-  temp = RXBytes[2];
-
-  pressure2 = pressure1;
-
-
-
-  if (pressure1 != pressure2)
-  {
-    Serial.println(F("Pressure check mis-match"));
-    return;
-  }
-
-  realpressure = pressure1 * 0.75;
-  realtemp = temp - 30.0;
-
-#ifdef SHOWDEGUGINFO
-  Serial.print(F("ID: "));
-  Serial.print(id, HEX);
-  Serial.print(F("   Status: "));
-  Serial.print(status);
-  Serial.print(F("   Temperature: "));
-  Serial.print(realtemp);
-  Serial.print(F("   Tyre Pressure: "));
-  Serial.print(realpressure);
-  Serial.println(F(""));
-#endif
-
-  //DisplayStatusInfo();
-
-  //update the array of tyres data
-  for (i = 0; i < 4; i++)
-  { //find a matching ID if it already exists
-    if (id == TPMS[i].TPMS_ID)
-    {
-      UpdateTPMSData(i, id, status, realtemp, realpressure);
-      IDFound = true;
-      break;
-    }
-
-  }
-
-  //no matching IDs in the array, so see if there is an empty slot to add it into, otherwise, ignore it.
-  if (IDFound == false)
-  {
-
-    prefindex = GetPreferredIndex(id);
-    if (prefindex == -1)
-    { //not found a specified index, so use the next available one..
-      for (i = 0; i < 4; i++)
-      {
-        if (TPMS[i].TPMS_ID == 0)
-        {
-          UpdateTPMSData(i, id, status, realtemp, realpressure);
-        }
-      }
-    }
-    else
-    { //found a match in the known ID list...
-      UpdateTPMSData(prefindex, id, status, realtemp, realpressure);
-    }
-
-  }
-
-
-  #ifdef SHOWDEGUGINFO
-     Serial.println(F(""));
-  #endif
-
-
-  //UpdateDisplay();
-}
-
-
-#ifndef USE_PROGMEMCRC
-  void CalulateTable_CRC8()
-  {
-    const byte generator = 0x07;
-  
-    /* iterate over all byte values 0 - 255 */
-    for (int divident = 0; divident < 256; divident++)
-    {
-      byte currByte = (byte)divident;
-      /* calculate the CRC-8 value for current byte */
-      for (byte bit = 0; bit < 8; bit++)
-      {
-        if ((currByte & 0x80) != 0)
-        {
-          currByte <<= 1;
-          currByte ^= generator;
-        }
-        else
-        {
-          currByte <<= 1;
-        }
-      }
-      /* store CRC value in lookup table */
-      crctable[divident] = currByte;
-      Serial.print("0x");
-      if (currByte < 16)
-         Serial.print("0");
-      Serial.print(currByte,HEX);
-      Serial.print(", ");
-    }
-  }
-#endif
-
-byte Compute_CRC8( int bcount)
-{
-  byte crc = 0x00;
-  int c;
-  for (c = 0; c < bcount; c++)
-  {
-    byte b = RXBytes[c];
-    /* XOR-in next input byte */
-    byte data = (byte)(b ^ crc);
-    /* get current CRC value = remainder */
-    #ifdef USE_PROGMEMCRC
-        crc = (byte)(pgm_read_byte(&crctable2[data]));
-    #else
-        crc = (byte)(crctable[data]);
-    #endif
-
-  }
-
-  return crc;
-}
-
 
 void ClearRXBuffer()
 {
@@ -632,8 +472,6 @@ int ValidateTimings()
   {
     return -1;
   }
-
-
 }
 
 
@@ -643,7 +481,6 @@ void InitDataBuffer()
   BitIndex = 0;
   BitCount = 0;
   ValidBlock = false;
-  //WaitingTrailingZeroEdge = false;
   WaitingFirstEdge  = true;
   CheckIndex = 0;
   TimingsIndex = 0;
@@ -677,34 +514,17 @@ int ReceiveMessage()
   }
   detachInterrupt(digitalPinToInterrupt(RXPin));
 
-  //digitalWrite(DEBUGPIN,LOW);
-
   CD_Width = micros() - CD_Width;
-  if ((CD_Width >= 9500) && (CD_Width <= 9900))
+  if ((CD_Width >= 9500) && (CD_Width <= 10500))//jayrock set upper border to 10500
   {
-    
-
-    //Serial.println(F("Checking"));
     digitalWrite(LED_RX,LED_ON);
     CheckIndex = 0;
-    ValidRenault = ValidateTimings();
-    //Serial.println(F("Checking complete"));
     digitalWrite(LED_RX,LED_OFF);
-
-    #ifdef SHOWDEGUGINFO
-       Serial.print("Timings index = ");
-       Serial.println(TimingsIndex);
-       Serial.print("CD Width = ");
-       Serial.println(CD_Width);
-       PrintTimings(0,TimingsIndex);
-    #endif
+    ValidRenault = 1;
     return ValidRenault;
   }
   else
   {
     return(-1);
   }
-
-
-
 }

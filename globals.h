@@ -25,7 +25,7 @@ const int DEBUGPIN = 6;
 const int MAXBITS = 200;
 
 const long Tlong_us = 100;
-const long Tshort_us = Tlong_us/2;
+const long Tshort_us = 50; //Tlong_us/2;
 const int Ttol_l_us = 25;
 const int Ttol_s_us = 13;
 volatile static unsigned long LastEdgeTime_us = 0;
@@ -42,7 +42,7 @@ byte StartDataIndex = 0;
 
 
 
-bool IncomingBits[MAXBITS]; 
+bool IncomingBits[MAXBITS];
 unsigned int BitIndex = 0;
 unsigned int BitCount = 0;
 
