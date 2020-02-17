@@ -422,8 +422,8 @@ bool checksum_xor( byteArray_t *data)
     byte checksum;
     
     if( data->length > 2) {
-        checksum = data->bytes[0];
-        for( i=1; i<data->length; i++) {
+        checksum = 0;
+        for( i=0; i<9; i++) { //for( i=1; i<data->length; i++) {
             checksum ^= data->bytes[i];
         }
 
