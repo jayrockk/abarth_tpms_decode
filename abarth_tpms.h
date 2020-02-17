@@ -213,11 +213,13 @@ void clear_byte_array( byteArray_t *data)
 void print_byte_array( byteArray_t *bytes)
 {
     int i;
-
-    Serial.println("print_byte_array to be implemented");
-    //for( i = 0; i < bytes->byte_count; i++) {
-      //  Serial.print("Byte [%d] %02x (%d)\n", i, bytes->bytes[i], bytes->bytes[i]);
-    //}
+    for( i = 0; i < bytes->byte_count; i++) {
+      Serial.print("Byte [");
+      Serial.print(i);
+      Serial.print("] ");
+      Serial.print( bytes->bytes[i], HEX);
+      Serial.println();
+    }
 }
 
 int pulse_type( byte time)
@@ -358,6 +360,10 @@ void manchester_decode( bitArray_t *bits, int start, byteArray_t *data)
     clear_byte_array( data);
     
     for( i = start; i < bits->bit_count; i++) {
+
+        an_int <<= 1;
+        an_int |= get_bit( bits, i) ? 1 : 0;
+        bit_count++;
 
         if( bit_count == 16) { /* Decode 16 bits via XOR with clock signal to one byte */
             an_int ^= MANCHESTER_DECODING_MASK;
