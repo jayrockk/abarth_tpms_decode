@@ -127,6 +127,12 @@ int wolfgang_main()
         Serial.print( "Manchester decode found ");
         Serial.print( data.length);
         Serial.println( " bytes");
+
+        data.length = 9;
+
+        Serial.print( "Cut that ");
+        Serial.print( data.length);
+        Serial.println( " bytes");
         
         print_byte_array( &data);
 
