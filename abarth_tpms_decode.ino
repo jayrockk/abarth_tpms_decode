@@ -107,22 +107,25 @@ void loop() {
   { //looks like some data coming in...
     
     ByteCount = ReceiveMessage();
-    if (ByteCount > 0)
+    /*if (ByteCount > 0)
     {
       Serial.print("ByteCount = ");
       Serial.println(ByteCount);
-    }
-    if (ByteCount == 9)
+    }*/
+    if (ByteCount > 0) //= 9)
     {
-        PrintData(BitCount);//uncommented by jayrock
+        Serial.print("ByteCount = ");
+        Serial.println(ByteCount);
+        //PrintData(BitCount);//uncommented by jayrock
+        Serial.println("jetzt wolfgang_main....");
         wolfgang_main();
         TPMS_Changed = true;  //indicates the display needs to be updated.
     }
   
-    if (TPMS_Changed == true)
+    /*if (TPMS_Changed == true)
     {
       UpdateDisplay();
       TPMS_Changed = false;
-   }
+   }*/
   }
 }

@@ -1,3 +1,5 @@
+#include <Wire.h>
+
 void ClearTPMSData(int i)
 {
   if (i > 4)
@@ -36,8 +38,8 @@ void PrintBits(byte StartPoint, byte Count)
   byte i;
   for (i = 0; i < Count; i++)
   {
-    Serial.print(IncomingBits[StartPoint + i]);
-    Serial.print(F(","));
+    Serial.println(IncomingBits[StartPoint + i]);
+    Serial.println(F(","));
   }
   Serial.println(F(""));
 }
@@ -46,8 +48,8 @@ void PrintTimings(byte StartPoint, byte Count)
   byte i;
   for (i = 0; i < Count; i++)
   {
-    Serial.print(Timings[StartPoint + i]);
-    Serial.print(F(","));
+    Serial.println(Timings[StartPoint + i]);
+    Serial.println(F(","));
   }
   Serial.println(F(""));
 }
@@ -58,13 +60,13 @@ void PrintData(byte Count)
   byte hexdata;
   for (i = 0; i < Count; i++)
   {
-    Serial.print(IncomingBits[i]);
+    Serial.println(IncomingBits[i]);
     hexdata = (hexdata << 1) + IncomingBits[i];
     if ((i + 1) % 8 == 0)
     {
-      Serial.print(F(" ["));
-      Serial.print(hexdata, HEX);
-      Serial.print(F("] "));
+      Serial.println(F(" ["));
+      Serial.println(hexdata, HEX);
+      Serial.println(F("] "));
       hexdata = 0;
     }
   }
@@ -101,11 +103,11 @@ void UpdateTPMSData(int index, unsigned long ID, unsigned int status, float Temp
 
 void DisplayStatusInfo()
 {
-  Serial.print (F("FreqOffset: "));
-  Serial.print (FreqOffset);
-  Serial.print (F("  DemodLinkQuality: "));
-  Serial.print (DemodLinkQuality);
-  Serial.print (F("  RSSI: "));
+  Serial.println (F("FreqOffset: "));
+  Serial.println (FreqOffset);
+  Serial.println (F("  DemodLinkQuality: "));
+  Serial.println (DemodLinkQuality);
+  Serial.println (F("  RSSI: "));
   Serial.println (RSSIvalue);
 }
 
@@ -120,15 +122,15 @@ boolean Check_TPMS_Timeouts()
     #ifdef SHOWDEGUGINFO
       if((TPMS[i].TPMS_ID) !=0)  //added by jarock
       {                                //added by jarock
-        Serial.print(TPMS[i].TPMS_ID, HEX);
-        Serial.print(F("   "));
+        Serial.println(TPMS[i].TPMS_ID, HEX);
+        Serial.println(F("   "));
       }                            //added by jarock
     #endif
 
     if ((TPMS[i].TPMS_ID != 0) && (millis() - TPMS[i].lastupdated > TPMS_TIMEOUT))
     {
       #ifdef SHOWDEGUGINFO
-         Serial.print(F("Clearing ID "));
+         Serial.println(F("Clearing ID "));
          Serial.println(TPMS[i].TPMS_ID, HEX);
       #endif
       ClearTPMSData(i);
@@ -427,7 +429,7 @@ int ValidateTimings()
     return -1;
   }
 
-  //Serial.print("Timings index = ");
+  //Serial.println("Timings index = ");
   //Serial.println(TimingsIndex);
 
   ConvertTimingsToBits();
@@ -446,11 +448,11 @@ int ValidateTimings()
   else
   {
      #ifdef SHOWDEGUGINFO
-       Serial.print("Timings index = ");
+       Serial.println("Timings index = ");
        Serial.println(TimingsIndex);
-       Serial.print("CD Width = ");
+       Serial.println("CD Width = ");
        Serial.println(CD_Width);
-       Serial.print("Bit count = ");
+       Serial.println("Bit count = ");
        Serial.println(BitCount);
        PrintTimings(0,TimingsIndex);
        PrintBits(0,BitCount);
@@ -460,7 +462,7 @@ int ValidateTimings()
   bcount = ManchesterDecode(ManchesterStartPos);
 
      #ifdef SHOWDEGUGINFO      //jayrock
-       Serial.print("bcount = ");//jayrock
+       Serial.println("bcount = ");//jayrock
        Serial.println(bcount);//jayrock
     #endif 
   

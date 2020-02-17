@@ -102,42 +102,53 @@ int wolfgang_main()
 
     
     // Wir versuchen mit start level TRUE 
-    printf("Trying start value: TRUE\n");
-    bit_decode( Timings, sizeof(Timings)/sizeof(byte), TRUE, &decoded_bits);
+    Serial.print("Trying start value: TRUE\n");
+    //bit_decode( Timings, sizeof(Timings)/sizeof(byte), TRUE, &decoded_bits);
+    bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
     data_start = find_preamble( &decoded_bits);
 
-    if( data_start == 0) {
+    /*if( data_start == 0) {
         // Hat nicht funktioniert, nochmal mit FALSE 
-        printf("Trying start value: FALSE\n");
+        Serial.print("Trying start value: FALSE\n");
         bit_decode( Timings, sizeof(Timings)/sizeof(byte), FALSE, &decoded_bits);
         data_start = find_preamble( &decoded_bits);
-    }
+    }*/
     
     print_bit_array( &decoded_bits);
 
     if( data_start == 0) {
-        printf( "Preamble not found\n\n");
+        Serial.print( "Preamble not found\n\n");
         
     } else {
-        printf( "Preamble found. Data starts at index %d\n\n", data_start);
+        Serial.print("Preamble found. Data starts at index ");
+        Serial.println(data_start);
+        //Serial.print(F("Preamble found. Data starts at index %d\n\n", data_start);
         
         manchester_decode( &decoded_bits, data_start, &data);
 
-        printf("Manchester decode found %d bytes\n\n", data.byte_count);
+        Serial.print("Manchester decode found ");
+        Serial.print(data.byte_count);
+        Serial.println(" bytes\n");
 
         print_byte_array( &data);
 
         if( checksum_xor( &data)) {
-            printf("\nChecksum OK\n\n");
+            Serial.print("\nChecksum OK\n\n");
 
-            printf("ID      : %02x %02x %02x %02x\n",
-                   data.bytes[0],data.bytes[1],data.bytes[2],data.bytes[3]);
+            Serial.print("ID      : ");//%02x %02x %02x %02x\n",
+            Serial.print(data.bytes[0]);
+            Serial.print(data.bytes[1]);
+            Serial.print(data.bytes[2]);
+            Serial.print(data.bytes[3]);            
+            //;,data.bytes[1],data.bytes[2],data.bytes[3]);
             
-            printf("Pressure: %.2f bar\n", (double)data.bytes[5] * 1.38 / 100);
-            printf("Temp    : %d C\n", data.bytes[6] - 50);
+            Serial.print("Pressure: ");
+            Serial.println((double)data.bytes[5] * 1.38 / 100);
+            Serial.print("Temp    : ");
+            Serial.println(data.bytes[6] - 50);
             
         } else {
-            printf("\nChecksum FAIILED\n");
+            Serial.print("\nChecksum FAIILED\n");
         }
     }
 }
@@ -160,13 +171,13 @@ void print_bit_array( bitArray_t *bits)
     int i;
     
     for( i = 0; i < bits->bit_count; i++) {
-        printf("%c", get_bit( bits, i) ? '1' : '0');
-        
+        //Serial.print("%c", get_bit( bits, i) ? '1' : '0');
+        Serial.print(get_bit( bits, i) ? '1' : '0');
         if( ((i+1) % 40) == 0) { /* Newline every 40 bits */
-            printf("\n");
+            Serial.print("\n");
         }
     }
-    printf("\n\n");
+    Serial.print("\n\n");
 }
 
 /* 
@@ -203,9 +214,10 @@ void print_byte_array( byteArray_t *bytes)
 {
     int i;
 
-    for( i = 0; i < bytes->byte_count; i++) {
-        printf("Byte [%d] %02x (%d)\n", i, bytes->bytes[i], bytes->bytes[i]);
-    }
+    Serial.println("print_byte_array to be implemented");
+    //for( i = 0; i < bytes->byte_count; i++) {
+      //  Serial.print("Byte [%d] %02x (%d)\n", i, bytes->bytes[i], bytes->bytes[i]);
+    //}
 }
 
 int pulse_type( byte time)
@@ -235,6 +247,8 @@ int pulse_type( byte time)
  * Return:
  *   nix
  */
+
+
 void bit_decode( const byte timing[], int count, boolean start_value,  bitArray_t *data)
 {
     byte i = 0;
@@ -242,11 +256,20 @@ void bit_decode( const byte timing[], int count, boolean start_value,  bitArray_
     int timing_len_usec = 0;  
     boolean level = start_value;
 
-    printf("Input: %d Timings\n", count);
+    Serial.print("Input: ");
+    Serial.print(count);
+    Serial.print(" Timings. i = \n");
+
+    if ((count<1) or (count>254)) {
+       Serial.println("count out of range");
+       return;      
+    }
     
     clear_bit_array( data);
 
     for( i = 0; i < count; i++) {
+        
+        Serial.println(i); 
         
         timing_len_usec += timing[i];        
         
@@ -264,7 +287,11 @@ void bit_decode( const byte timing[], int count, boolean start_value,  bitArray_
     }
 
     data->bit_count = bit_count;
-    printf("Output: %d bits. Length %d usec\n", bit_count, timing_len_usec);
+    Serial.print("Output: ");
+    Serial.print(bit_count);
+    Serial.print(" bits. Length ");
+    Serial.print(timing_len_usec);
+    Serial.println(" usec");
 }
 
 /********************************************************/
@@ -353,7 +380,9 @@ void manchester_decode( bitArray_t *bits, int start, byteArray_t *data)
     }
 
     if( bit_count > 0) {
-        printf("WARNING: %d bits left over.\n", bit_count);
+        Serial.print("WARNING: ");
+        Serial.print(bit_count);
+        Serial.println(" bits left over.\n");
     }
 }
 
@@ -410,9 +439,9 @@ boolean checksum_xor( byteArray_t *data)
     print_byte_array( &data);
 
     if( data.bytes[0] == 0xa7) {
-        printf("OK\n");
+        Serial.print("OK\n");
     } else {
-        printf("FAILED, expected 0xA7\n");
+        Serial.print("FAILED, expected 0xA7\n");
     }
     
     exit(0);
@@ -430,9 +459,9 @@ void unit_test_bits()
     }
 
     for( i = 0; i<16; i++) {
-        printf("%c", get_bit( &b, i) ? '1' : '0');
+        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
     }
-    printf( "\n");
+    Serial.print( "\n");
 
     for( i = 0; i < 16; i += 2) {
         set_bit( &b, i, FALSE);
@@ -440,9 +469,9 @@ void unit_test_bits()
     }
 
     for( i = 0; i<16; i++) {
-        printf("%c", get_bit( &b, i) ? '1' : '0');
+        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
     }
-    printf( "\n");
+    Serial.print( "\n");
 
     clear_bit_array( &b);
 
@@ -455,9 +484,9 @@ void unit_test_bits()
     }
 
     for( i = 0; i<16; i++) {
-        printf("%c", get_bit( &b, i) ? '1' : '0');
+        Serial.print("%c", get_bit( &b, i) ? '1' : '0');
     }
-    printf( "\n");
+    Serial.print( "\n");
 
     exit(0);
 }*/
