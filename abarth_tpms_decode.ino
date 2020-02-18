@@ -90,12 +90,12 @@ void loop() {
   TPMS_Changed = Check_TPMS_Timeouts();
 
   //wait for carrier status to go low
-  while (GetCarrierStatus == true)
+  while (GetCarrierStatus() == true)
   {
   }
 
   //wait for carrier status to go high  looking for rising edge
-  while (GetCarrierStatus == false)
+  while (GetCarrierStatus() == false)
   {
   }
 
