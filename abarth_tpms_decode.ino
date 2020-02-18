@@ -101,19 +101,17 @@ void loop() {
 
   if (ReceiveMessage())
   {
-    Serial.println("jetzt wolfgang_main....");
-
-    ByteCount = wolfgang_main();
+    ByteCount = decode_tpms();
 
     Serial.print( ByteCount);
-    Serial.println( "Bytes decoded");
+    Serial.println( " Bytes decoded");
     
     TPMS_Changed = true;  //indicates the display needs to be updated.
   }
   
-    /*if (TPMS_Changed == true)
+    if (TPMS_Changed == true)
     {
       UpdateDisplay();
       TPMS_Changed = false;
-   }*/
+   }
 }

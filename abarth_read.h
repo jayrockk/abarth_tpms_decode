@@ -10,13 +10,6 @@ void ClearTPMSData(int i)
 
 }
 
-void PulseDebugPin(int width_us)
-{
-  digitalWrite(DEBUGPIN, HIGH);
-  delayMicroseconds(width_us);
-  digitalWrite(DEBUGPIN, LOW);
-}
-
 int GetPreferredIndex(unsigned long ID)
 {
   int i;
@@ -30,17 +23,6 @@ int GetPreferredIndex(unsigned long ID)
 
   }
   return (-1);
-}
-
-void PrintTimings(byte StartPoint, byte Count)
-{
-  byte i;
-  for (i = 0; i < Count; i++)
-  {
-    Serial.println(Timings[StartPoint + i]);
-    Serial.println(F(","));
-  }
-  Serial.println(F(""));
 }
 
 void InitTPMS()
@@ -67,16 +49,6 @@ void UpdateTPMSData(int index, unsigned long ID, unsigned int status, float Temp
   TPMS[index].lastupdated = millis();
   TPMS[index].TPMS_Temperature = Temperature;
   TPMS[index].TPMS_Pressure = Pressure;
-}
-
-void DisplayStatusInfo()
-{
-  Serial.println (F("FreqOffset: "));
-  Serial.println (FreqOffset);
-  Serial.println (F("  DemodLinkQuality: "));
-  Serial.println (DemodLinkQuality);
-  Serial.println (F("  RSSI: "));
-  Serial.println (RSSIvalue);
 }
 
 boolean Check_TPMS_Timeouts()

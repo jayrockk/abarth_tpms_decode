@@ -20,8 +20,8 @@
     display.setTextColor(WHITE, BLACK);       // Draw white text
   
     display.setCursor(0, 0);
-    display.println("Renault TPMS Monitor");
-    display.println("   (JSM Solutions)");
+    display.println("Abarth TPMS Monitor");
+    display.println("   (TWJ Solutions)");
   
   
   }
@@ -99,9 +99,9 @@
     //display.setTextColor(WHITE, BLACK);       // Draw white text
   
     display.setCursor(0, 0);
-    display.println("Renault TPMS Monitor");
-    display.println("      (JSM Solutions)");
-  
+    display.println("Abarth TPMS Monitor");
+    display.println("   (TWJ Solutions)");
+ 
   
   }
 

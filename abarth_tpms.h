@@ -89,7 +89,7 @@ bool checksum_xor( byteArray_t *data);
 
 /********************************************************/
 
-int wolfgang_main()
+int decode_tpms()
 {
     bitArray_t preamble;
     bitArray_t decoded_bits;   // Decoded timing bits
@@ -98,7 +98,6 @@ int wolfgang_main()
     bitLength_t data_start;           // Data start after preamble
     
     byte a_byte;
-
 
     clear_byte_array( &data);
     
@@ -110,42 +109,129 @@ int wolfgang_main()
     preamble.bits[1] = 0xA9;
     preamble.length = 16;
 
+    int i;
+    unsigned long id = 0;
+    unsigned int status = 0;
+    float pressure;
+    float temperature;
+    bool IDFound = false;
+    int prefindex;
+
+
+#ifdef SHOWDEGUGINFO
     Serial.print( TimingsIndex);
     Serial.println( " timings detected.");
+#endif
     
     bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
 
+
+#ifdef SHOWDEGUGINFO
     Serial.print( decoded_bits.length);
     Serial.println( " bits decoded.");
     print_bit_array( &decoded_bits);
+#endif
 
     data_start = find_preamble( &decoded_bits, &preamble);
     
     if( data_start == 0) {
+      
+#ifdef SHOWDEGUGINFO
         Serial.println( "Preamble not found");
+#endif
         
     } else {
+
+
+#ifdef SHOWDEGUGINFO        
         Serial.print( "Preamble found. Data starts at index ");
         Serial.println( data_start);
+#endif
         
         manchester_decode( &decoded_bits, data_start, &data);
 
+#ifdef SHOWDEGUGINFO
         Serial.print( "Manchester decode found ");
         Serial.print( data.length);
         Serial.println( " bytes");
+#endif
 
         data.length = 9;
 
+#ifdef SHOWDEGUGINFO
         Serial.print( "Cut that ");
         Serial.print( data.length);
         Serial.println( " bytes");
+#endif
         
         print_byte_array( &data);
 
         if( checksum_xor( &data)) {
-            Serial.println("Checksum OK");
 
-            Serial.print("ID      : ");
+
+#ifdef SHOWDEGUGINFO
+           Serial.println("Checksum OK");
+#endif
+
+           for (i = 3; i >= 0; i--)
+           {
+               id = id << 8;
+               id = id + data.bytes[i];
+           }
+
+           pressure = (float)data.bytes[5] * 1.38 / 10;
+           temperature = data.bytes[6] - 50;
+
+#ifdef SHOWDEGUGINFO
+           Serial.print(F("ID: "));
+           Serial.print(id, HEX);
+           Serial.print(F("   Temperature: "));
+           Serial.print(temperature);
+           Serial.print(F("   Tyre Pressure: "));
+           Serial.print(pressure);
+           Serial.println(F(""));
+#endif
+
+       //update the array of tyres data
+       for (i = 0; i < 4; i++)
+       { //find a matching ID if it already exists
+         if (id == TPMS[i].TPMS_ID)
+         {
+           UpdateTPMSData(i, id, status, temperature, pressure);
+           IDFound = true;
+           break;
+         }
+
+       }
+
+       //no matching IDs in the array, so see if there is an empty slot to add it into, otherwise, ignore it.
+       if (IDFound == false)
+       {
+
+         prefindex = GetPreferredIndex(id);
+         if (prefindex == -1)
+         { //not found a specified index, so use the next available one..
+           for (i = 0; i < 4; i++)
+           {
+             if (TPMS[i].TPMS_ID == 0)
+             {
+               UpdateTPMSData(i, id, status, temperature, pressure);
+             }
+           }
+         }
+         else
+         { //found a match in the known ID list...
+           UpdateTPMSData(prefindex, id, status, temperature, pressure);
+         }
+
+  }
+
+
+  #ifdef SHOWDEGUGINFO
+     Serial.println(F(""));
+  #endif
+
+            /*Serial.print("ID      : ");
             Serial.print( data.bytes[0], HEX);
             Serial.print( data.bytes[1], HEX);
             Serial.print( data.bytes[2], HEX);
@@ -155,10 +241,15 @@ int wolfgang_main()
             Serial.println( (float)data.bytes[5] * 1.38 / 100);
             
             Serial.print("Temp    : ");
-            Serial.println( data.bytes[6] - 50);
+            Serial.println( data.bytes[6] - 50);*/
 
         } else {
+
+
+#ifdef SHOWDEGUGINFO
             Serial.println("Checksum FAIILED");
+#endif
+            
         }
     }
 
@@ -201,7 +292,11 @@ bool get_bit( bitArray_t *bits, bitLength_t bitno)
     if( bitno < bits->capacity) {
         return (bits->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? TRUE : FALSE;
     } else {
+
+#ifdef SHOWDEGUGINFO
         Serial.println("ERROR IN get_bit(): bitno >= capacity");
+#endif
+        
         return FALSE;
     }
 }
@@ -222,7 +317,12 @@ void set_bit( bitArray_t *bits, bitLength_t bitno, bool value)
             bits->length = bitno +1;
         }
     } else {
+
+
+#ifdef SHOWDEGUGINFO
         Serial.println("ERROR IN set_bit(): bitno >= capacity");
+#endif
+
     }
 }
 
@@ -261,7 +361,12 @@ byte get_byte( byteArray_t *data, byteLength_t byteno)
     if( byteno < data->capacity) {
         return data->bytes[byteno];
     } else {
+
+
+#ifdef SHOWDEGUGINFO
         Serial.println("ERROR IN get_byte(): byteno >= capacity");
+#endif
+
         return 0;
     }
 }
@@ -418,11 +523,15 @@ void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data)
         }
     }
 
+
+#ifdef SHOWDEGUGINFO
     if( bit_count > 0) {
         Serial.print("WARNING: ");
         Serial.print(bit_count);
         Serial.println(" bits left over.");
     }
+#endif
+
 }
 
 /* Einfache XOR checksum.
