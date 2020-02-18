@@ -110,11 +110,17 @@ int wolfgang_main()
     preamble.bits[1] = 0xA9;
     preamble.length = 16;
 
-    bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
-    data_start = find_preamble( &decoded_bits, &preamble);
+    Serial.print( TimingsIndex);
+    Serial.println( " timings detected.");
     
+    bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
+
+    Serial.print( decoded_bits.length);
+    Serial.println( " bits decoded.");
     print_bit_array( &decoded_bits);
 
+    data_start = find_preamble( &decoded_bits, &preamble);
+    
     if( data_start == 0) {
         Serial.println( "Preamble not found");
         
@@ -195,7 +201,7 @@ bool get_bit( bitArray_t *bits, bitLength_t bitno)
     if( bitno < bits->capacity) {
         return (bits->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? TRUE : FALSE;
     } else {
-        Serial.println("ERROR IN get_bit(): byteno >= capacity");
+        Serial.println("ERROR IN get_bit(): bitno >= capacity");
         return FALSE;
     }
 }
@@ -216,7 +222,7 @@ void set_bit( bitArray_t *bits, bitLength_t bitno, bool value)
             bits->length = bitno +1;
         }
     } else {
-        Serial.println("ERROR IN set_bit(): byteno >= capacity");
+        Serial.println("ERROR IN set_bit(): bitno >= capacity");
     }
 }
 
@@ -345,7 +351,12 @@ bitLength_t find_preamble( bitArray_t *bits, bitArray_t *preamble)
     bitLength_t saved_start = 0;
     bitLength_t data_start = 0;
 
-    while( bit_idx < bits->length - preamble->length) {
+    if( bits->length <= preamble->length) {
+      /* Not enough bits to detect preamble - bail out.*/
+      return 0;
+    }
+
+    while( bit_idx < (bits->length - preamble->length)) {
 
         if( pre_idx == 0) { /* Remember start for restart on match failure */
             saved_start = bit_idx;
