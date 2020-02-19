@@ -7,7 +7,7 @@
 #define LED_OFF HIGH
 #define LED_ON LOW
 
-#define TPMS_TIMEOUT 900000 //(15 * 60 * 1000)  15 minutes
+#define TPMS_TIMEOUT 90000000 //(15 * 60 * 1000)  15 minutes //jayrock added *100 temporarily
 
 #define FONTBAR_7 123
 #define FONTBAR_5 124

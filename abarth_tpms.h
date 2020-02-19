@@ -173,13 +173,13 @@ int decode_tpms()
            Serial.println(F("Checksum OK"));
 #endif
 
-           for (i = 3; i >= 0; i--)
+           for (i = 0; i <= 3; i++)
            {
                id = id << 8;
                id = id + data.bytes[i];
            }
 
-           pressure = (float)data.bytes[5] * 1.38 / 10; //pressure in bar
+           pressure = (float)data.bytes[5] * 1.38 / 100; //pressure in bar
            temperature = data.bytes[6] - 50;
 
 #ifdef SHOWDEGUGINFO
@@ -197,6 +197,7 @@ int decode_tpms()
        { //find a matching ID if it already exists
          if (id == TPMS[i].TPMS_ID)
          {
+           Serial.println(F("ID match found"));
            UpdateTPMSData(i, id, status, temperature, pressure);
            IDFound = true;
            break;
@@ -207,7 +208,8 @@ int decode_tpms()
        //no matching IDs in the array, so see if there is an empty slot to add it into, otherwise, ignore it.
        if (IDFound == false)
        {
-
+         Serial.println(F("ID match NOT found"));
+           
          prefindex = GetPreferredIndex(id);
          if (prefindex == -1)
          { //not found a specified index, so use the next available one..
