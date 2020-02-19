@@ -24,6 +24,7 @@ void setup() {
 
   pinMode(LED_RX, OUTPUT);
   pinMode(RXPin, INPUT);
+  pinMode(CDPin, INPUT);
 
   SPI.begin();
   //initialise the CC1101
@@ -82,6 +83,10 @@ void setup() {
   /* Start receiver state machine */
   InitDataBuffer();
   receiver_state = STATE_IDLE;
+
+  carrierDetected_count = 0;
+  dataAvailable_count = 0;
+  
   attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
   attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
 
@@ -99,6 +104,11 @@ void loop() {
     
     if( ch == '\n') {
       /* Do something ... */
+      Serial.print("carrier detected: ");
+      Serial.println(carrierDetected_count);
+      Serial.print("data available: ");
+      Serial.println(dataAvailable_count);
+      
       for( int i=0; i<4; i++) {
         Serial.print(i);
         Serial.print(" Temp    : ");

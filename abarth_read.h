@@ -30,6 +30,10 @@ static volatile byte receiver_state;
 
 static volatile bool FirstEdgeState = LOW;
 
+
+static volatile unsigned int carrierDetected_count;
+static volatile unsigned int dataAvailable_count;
+
 /**************************************/
 
 void ClearTPMSData(int i)
@@ -163,6 +167,7 @@ void CarrierSenseInterrupt()
       if( carrier == HIGH) {
         CD_Width = LastEdgeTime_us = micros();
         receiver_state = STATE_CARRIER_DETECTED;
+        carrierDetected_count++;
       }
       break;
 
@@ -175,6 +180,7 @@ void CarrierSenseInterrupt()
     case STATE_RECEIVING:
       if( carrier == LOW) {
         receiver_state = STATE_DATA_AVAILABLE;
+        dataAvailable_count++;
       }
       break;
 
