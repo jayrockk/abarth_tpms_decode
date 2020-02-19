@@ -3,7 +3,7 @@
  *
  */
 
-#include <Arduino.h>
+//#include <Arduino.h>
 
 #ifndef byte
 typedef unsigned char byte;
@@ -197,7 +197,11 @@ int decode_tpms()
        { //find a matching ID if it already exists
          if (id == TPMS[i].TPMS_ID)
          {
+ 
+#ifdef SHOWDEGUGINFO
            Serial.println(F("ID match found"));
+#endif
+           
            UpdateTPMSData(i, id, status, temperature, pressure);
            IDFound = true;
            break;
@@ -208,7 +212,10 @@ int decode_tpms()
        //no matching IDs in the array, so see if there is an empty slot to add it into, otherwise, ignore it.
        if (IDFound == false)
        {
+
+#ifdef SHOWDEGUGINFO
          Serial.println(F("ID match NOT found"));
+#endif
            
          prefindex = GetPreferredIndex(id);
          if (prefindex == -1)
@@ -227,18 +234,6 @@ int decode_tpms()
          }
 
   }
-
-            /*Serial.print("ID      : ");
-            Serial.print( data.bytes[0], HEX);
-            Serial.print( data.bytes[1], HEX);
-            Serial.print( data.bytes[2], HEX);
-            Serial.println( data.bytes[3], HEX);
-            
-            Serial.print("Pressure: ");
-            Serial.println( (float)data.bytes[5] * 1.38 / 100);
-            
-            Serial.print("Temp    : ");
-            Serial.println( data.bytes[6] - 50);*/
 
         } else {
 

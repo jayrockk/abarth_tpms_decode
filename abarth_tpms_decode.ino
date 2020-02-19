@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <SPI.h>
 
+
 #include "globals.h"
 #include "cc1101.h"
 #include "display.h"
@@ -45,18 +46,13 @@ void setup() {
   Serial.println(resp, HEX);
 
 
-#if USE_ADAFRUIT
-  if (!display.begin(SSD1306_EXTERNALVCC, I2C_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;); // Don't proceed, loop forever
-  }
-#else
+
   Wire.begin();
   Wire.setClock(400000L);
   display.begin(&Adafruit128x64, I2C_ADDRESS);
   display.setFont(Adafruit5x7);
-#endif
 
+  //SetupDisplay();
   Serial.println(F("SSD1306 initialised OK"));
 
   digitalWrite(LED_RX, LED_ON);
@@ -65,12 +61,7 @@ void setup() {
   pinMode(DEBUGPIN, OUTPUT);
 
   // Clear the buffer
-#if USE_ADAFRUIT
-  display.clearDisplay();
-  display.display();
-#else
   display.clear();
-#endif
 
   InitTPMS();
 
@@ -85,7 +76,6 @@ void loop() {
   static long lastts = millis();
   int ByteCount = 0;
   bool TPMS_Changed;
-
 
   TPMS_Changed = Check_TPMS_Timeouts();
 

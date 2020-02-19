@@ -1,84 +1,4 @@
 
-//#define USE_ADAFRUIT 1
-#define USE_TEXTONLY 1
-
-#if USE_ADAFRUIT
-   #include <Adafruit_GFX.h>
-   #include <Adafruit_SSD1306.h>
-
-   #define SCREEN_WIDTH 128 // OLED display width, in pixels
-   #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-   Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,  &Wire, -1);
-
-
-  void ShowTitle()
-  {
-    display.clearDisplay();
-    display.setFont(Adafruit5x7);
-    display.setTextSize(1);             // Normal 1:1 pixel scale
-    display.setTextColor(WHITE, BLACK);       // Draw white text
-  
-    display.setCursor(0, 0);
-    display.println("Abarth TPMS Monitor");
-    display.println("   (TWJ Solutions)");
-  
-  
-  }
-  
-  void UpdateDisplay()
-  {
-    int i;
-    int x = 0;
-    int y = 0;
-    char s[6];
-  
-    ShowTitle();
-    
-    display.setFont(Adafruit5x7);
-    display.setTextSize(2);
-  
-    for (i = 0; i < 4; i++)
-    {
-      switch (i)
-      {
-        case 0:
-          x = 0;
-          y = 16;
-          break;
-        case 1:
-          x = 64;
-          y = 16;
-          break;
-        case 2:
-          x = 0;
-          y = 48;
-          break;
-        case 3:
-          x = 64;
-          y = 48;
-          break;
-      }
-  
-  
-      display.setCursor(x, y);
-  
-      if (TPMS[i].TPMS_ID != 0)
-      {
-        
-        //in bar...
-        dtostrf(TPMS[i].TPMS_Pressure, 3, 2, s);
-
-        //in psi
-        //dtostrf(TPMS[i].TPMS_Pressure/6.895, 3, 1, s);
-
-        display.print(s);
-      }
-    }
-    display.display();
-  
-  }
-   
-#else
    #include "SSD1306Ascii.h"
    #include "SSD1306AsciiWire.h"
 
@@ -93,7 +13,7 @@
     //display.setTextColor(WHITE, BLACK);       // Draw white text
   
     display.setCursor(0, 0);
-    display.println("Abarth TPMS Monitor");
+    display.println(" Abarth TPMS Monitor");
     display.println("   (TWJ Solutions)");
  
   
@@ -150,19 +70,19 @@
       switch (i)
       {
         case 0:
-          x = 0;
+          x = 2;
           y = 2;
           break;
-        case 1:
-          x = 59;
+        case 12:
+          x = 60;
           y = 2;
           break;
         case 2:
-          x = 0;
+          x = 2;
           y = 5;
           break;
         case 3:
-          x = 59;
+          x = 60;
           y = 5;
           break;
       }
@@ -201,4 +121,33 @@
     
   
   }
-#endif
+
+
+
+/*#include <U8x8lib.h>
+//#include <Arduino.h>
+
+
+//U8X8_SH1106_128X64_NONAME_HW_I2C u8x8( U8X8_PIN_NONE);
+//U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8X8_PIN_NONE);
+
+
+/*void ShowTitle()
+{
+    u8x8.setFont(u8x8_font_artossans8_u);
+    u8x8.drawString(0,0,"TPMS Monitor");
+    u8x8.refreshDisplay();
+}
+
+void SetupDisplay()
+{
+  u8x8.begin();
+  u8x8.setPowerSave(0);
+  ShowTitle();
+}
+
+
+
+void UpdateDisplay()
+{
+}*/

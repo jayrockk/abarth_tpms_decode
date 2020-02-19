@@ -1,4 +1,4 @@
-#define USE_PROGMEMCRC 1
+//#define USE_PROGMEMCRC 1
 #define SHOWDEGUGINFO 1
 
 #define I2C_ADDRESS 0x3C
@@ -9,12 +9,12 @@
 
 #define TPMS_TIMEOUT 90000000 //(15 * 60 * 1000)  15 minutes //jayrock added *100 temporarily
 
-#define FONTBAR_7 123
+/*#define FONTBAR_7 123
 #define FONTBAR_5 124
 #define FONTBAR_3 125
 #define FONTBAR_2 126
 #define FONTBAR_1 127
-#define FONTBAR_0 32
+#define FONTBAR_0 32*/
 
 const int CC1101_CS = 10;  // Define the Chip Select pin
 const int RXPin = 2;
@@ -44,9 +44,9 @@ byte StartDataIndex = 0;
 unsigned int BitIndex = 0;
 unsigned int BitCount = 0;
 
-unsigned int FreqOffset;
+/*unsigned int FreqOffset;
 unsigned int DemodLinkQuality;
-unsigned int RSSIvalue;
+unsigned int RSSIvalue;*/
 
 
 int RawCount = 0;
@@ -62,7 +62,7 @@ const unsigned long PROGMEM IDLookup[]
 
 
 
-#ifdef USE_PROGMEMCRC
+/*#ifdef USE_PROGMEMCRC
   ////CRCTable
   const byte PROGMEM crctable2[] =
   {
@@ -107,7 +107,7 @@ const unsigned long PROGMEM IDLookup[]
       0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB, 0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
   };
 #endif
-
+*/
 
 
 struct TPMS_entry
