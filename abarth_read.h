@@ -59,13 +59,6 @@ boolean Check_TPMS_Timeouts()
     //clear any data not updated in the last 5 minutes
   for (i = 0; i < 4; i++)
   {
-    #ifdef SHOWDEGUGINFO
-      if((TPMS[i].TPMS_ID) !=0)  //added by jarock
-      {                                //added by jarock
-        Serial.println(TPMS[i].TPMS_ID, HEX);
-        Serial.println(F("   "));
-      }                            //added by jarock
-    #endif
 
     if ((TPMS[i].TPMS_ID != 0) && (millis() - TPMS[i].lastupdated > TPMS_TIMEOUT))
     {

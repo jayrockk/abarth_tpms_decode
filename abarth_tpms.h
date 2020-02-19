@@ -128,49 +128,49 @@ int decode_tpms()
 
 #ifdef SHOWDEGUGINFO
     Serial.print( decoded_bits.length);
-    Serial.println( " bits decoded.");
+    Serial.println( F(" bits decoded."));
     print_bit_array( &decoded_bits);
 #endif
 
     data_start = find_preamble( &decoded_bits, &preamble);
-    
+   
     if( data_start == 0) {
-      
+
 #ifdef SHOWDEGUGINFO
-        Serial.println( "Preamble not found");
+        Serial.println( F("Preamble not found"));
 #endif
         
-    } else {
-
-
+    } 
+    else
+    {
+        
 #ifdef SHOWDEGUGINFO        
-        Serial.print( "Preamble found. Data starts at index ");
+        Serial.print( F("Preamble found. Data starts at index "));
         Serial.println( data_start);
 #endif
         
         manchester_decode( &decoded_bits, data_start, &data);
 
 #ifdef SHOWDEGUGINFO
-        Serial.print( "Manchester decode found ");
+        Serial.print( F("Manchester decode found "));
         Serial.print( data.length);
-        Serial.println( " bytes");
+        Serial.println( F(" bytes"));
 #endif
 
         data.length = 9;
 
 #ifdef SHOWDEGUGINFO
-        Serial.print( "Cut that ");
+        Serial.print( F("Cut that "));
         Serial.print( data.length);
-        Serial.println( " bytes");
-#endif
-        
+        Serial.println( F(" bytes"));
         print_byte_array( &data);
+#endif
 
         if( checksum_xor( &data)) {
-
+        //if(true) {
 
 #ifdef SHOWDEGUGINFO
-           Serial.println("Checksum OK");
+           Serial.println(F("Checksum OK"));
 #endif
 
            for (i = 3; i >= 0; i--)
@@ -179,7 +179,7 @@ int decode_tpms()
                id = id + data.bytes[i];
            }
 
-           pressure = (float)data.bytes[5] * 1.38 / 10;
+           pressure = (float)data.bytes[5] * 1.38 / 10; //pressure in bar
            temperature = data.bytes[6] - 50;
 
 #ifdef SHOWDEGUGINFO
@@ -226,11 +226,6 @@ int decode_tpms()
 
   }
 
-
-  #ifdef SHOWDEGUGINFO
-     Serial.println(F(""));
-  #endif
-
             /*Serial.print("ID      : ");
             Serial.print( data.bytes[0], HEX);
             Serial.print( data.bytes[1], HEX);
@@ -247,7 +242,7 @@ int decode_tpms()
 
 
 #ifdef SHOWDEGUGINFO
-            Serial.println("Checksum FAIILED");
+            Serial.println(F("Checksum FAIILED"));
 #endif
             
         }
@@ -294,7 +289,7 @@ bool get_bit( bitArray_t *bits, bitLength_t bitno)
     } else {
 
 #ifdef SHOWDEGUGINFO
-        Serial.println("ERROR IN get_bit(): bitno >= capacity");
+        Serial.println( F("ERROR IN get_bit(): bitno >= capacity"));
 #endif
         
         return FALSE;
@@ -320,7 +315,7 @@ void set_bit( bitArray_t *bits, bitLength_t bitno, bool value)
 
 
 #ifdef SHOWDEGUGINFO
-        Serial.println("ERROR IN set_bit(): bitno >= capacity");
+        Serial.println( F("ERROR IN set_bit(): bitno >= capacity"));
 #endif
 
     }
@@ -345,9 +340,9 @@ void print_byte_array( byteArray_t *bytes)
     byteLength_t i;
 
     for( i = 0; i < bytes->length; i++) {
-        Serial.print("Byte [");
+        Serial.print(F("Byte ["));
         Serial.print(i);
-        Serial.print("]: ");
+        Serial.print(F("]: "));
         Serial.println( bytes->bytes[i], HEX);
     }
     Serial.println();
@@ -364,7 +359,7 @@ byte get_byte( byteArray_t *data, byteLength_t byteno)
 
 
 #ifdef SHOWDEGUGINFO
-        Serial.println("ERROR IN get_byte(): byteno >= capacity");
+        Serial.println(F("ERROR IN get_byte(): byteno >= capacity"));
 #endif
 
         return 0;
@@ -381,7 +376,11 @@ void append_byte( byteArray_t *data, byte value)
         data->bytes[data->length] = value;
         data->length++;
     } else {
-        Serial.println("ERROR IN append_byte(): length >= capacity");
+
+#ifdef SHOWDEGUGINFO
+        Serial.println(F("ERROR IN append_byte(): length >= capacity"));
+#endif
+
     }
 }
 
@@ -526,9 +525,9 @@ void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data)
 
 #ifdef SHOWDEGUGINFO
     if( bit_count > 0) {
-        Serial.print("WARNING: ");
+        Serial.print(F("WARNING: "));
         Serial.print(bit_count);
-        Serial.println(" bits left over.");
+        Serial.println(F(" bits left over."));
     }
 #endif
 

@@ -31,7 +31,7 @@ void setup() {
 
   delay(2000);
 
-  Serial.println("Starting...");
+  Serial.println(F("Starting..."));
 
   setIdleState();
   digitalWrite(LED_RX, LED_OFF);
@@ -104,7 +104,7 @@ void loop() {
     ByteCount = decode_tpms();
 
     Serial.print( ByteCount);
-    Serial.println( " Bytes decoded");
+    Serial.println( F(" Bytes decoded"));
     
     TPMS_Changed = true;  //indicates the display needs to be updated.
   }

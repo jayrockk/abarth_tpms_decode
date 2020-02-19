@@ -6,7 +6,6 @@
    #include <Adafruit_GFX.h>
    #include <Adafruit_SSD1306.h>
 
-
    #define SCREEN_WIDTH 128 // OLED display width, in pixels
    #define SCREEN_HEIGHT 64 // OLED display height, in pixels
    Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,  &Wire, -1);
@@ -66,13 +65,8 @@
       if (TPMS[i].TPMS_ID != 0)
       {
         
-        // in kpa       
-        //int kpa;
-        //kpa = (int) (TPMS[i].TPMS_Pressure + 0.5);
-        //sprintf(s,"%3d", kpa);
-        
         //in bar...
-        dtostrf(TPMS[i].TPMS_Pressure/100.0, 3, 2, s);
+        dtostrf(TPMS[i].TPMS_Pressure, 3, 2, s);
 
         //in psi
         //dtostrf(TPMS[i].TPMS_Pressure/6.895, 3, 1, s);
@@ -181,16 +175,8 @@
         display.setFont(Adafruit5x7);
         display.set2X();
         
-        // in kpa       
-        //int kpa;
-        //kpa = (int) (TPMS[i].TPMS_Pressure + 0.5);
-        //sprintf(s,"%3d", kpa);
-        
         //in bar...
-        dtostrf(TPMS[i].TPMS_Pressure/100.0, 3, 2, s);
-
-        //in psi
-        //dtostrf(TPMS[i].TPMS_Pressure/6.895, 3, 1, s);
+        dtostrf(TPMS[i].TPMS_Pressure, 3, 2, s);
         display.print(s);
 
         display.setCursor(x, y+2);

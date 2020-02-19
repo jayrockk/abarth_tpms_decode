@@ -126,7 +126,7 @@ struct CCPACKET
 #define CC1101_MDMCFG2           0x12        // Modem Configuration
 #define CC1101_MDMCFG1           0x13        // Modem Configuration
 #define CC1101_MDMCFG0           0x14        // Modem Configuration
-#define CC1101_DEVIATN           0x15        // Modem Deviation Setting
+#define CC1101_DEVIATN           0x45        // Modem Deviation Setting //jayrock: was 0x15
 #define CC1101_MCSM2             0x16        // Main Radio Control State Machine Configuration
 #define CC1101_MCSM1             0x17        // Main Radio Control State Machine Configuration
 #define CC1101_MCSM0             0x18        // Main Radio Control State Machine Configuration
