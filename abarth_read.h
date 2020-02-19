@@ -1,5 +1,37 @@
 #include <Wire.h>
 
+/* Receive state machine:
+ * ======================
+ * 
+ *     +------------ CDintr ---------+
+ *     |         (carrier lost)      |
+ *     V                             |
+ *   IDLE >------ CDintr ----> CARRIER_DETECTED
+ *     ^    (carrier detected)       |
+ *     |                             |
+ *     |                             |
+ *   loop()                       EdgeIntr
+ *  processing                       |
+ *     |                             |
+ *     |                             V
+ *   DATA <------ CDintr ------< RECEIVING >--+
+ * AVAILABLE   (carrier lost)        ^        |
+ *                                   |     EdgeIntr
+ *                                   |        |
+ *                                   +--------+
+ * 
+ */
+#define STATE_IDLE               0
+#define STATE_CARRIER_DETECTED   1
+#define STATE_RECEIVING          2
+#define STATE_DATA_AVAILABLE     3
+
+static volatile byte receiver_state;
+
+static volatile bool FirstEdgeState = LOW;
+
+/**************************************/
+
 void ClearTPMSData(int i)
 {
   if (i > 4)
@@ -76,50 +108,87 @@ boolean Check_TPMS_Timeouts()
 
 // ********************************************  interrupt handler   *******************************
 
-bool FirstEdgeState = LOW;
-
 void EdgeInterrupt()
 {
   unsigned long ts = micros();
   unsigned long BitWidth;
  
-  if (TimingsIndex == 0)
+  switch( receiver_state)
   {
-     //remember the state of the first entry (all other entries will assume to be toggled from this state)
-     FirstEdgeState = digitalRead(RXPin);
-  }
+    case STATE_IDLE:
+      /* Do nothing */
+      break;
 
-  if (TimingsIndex == 255)
-  {//buffer full - don't accpet anymore
-    return;
-  }
+    case STATE_CARRIER_DETECTED:
+    
+      FirstEdgeState = digitalRead(RXPin);
+      receiver_state = STATE_RECEIVING;
+      /* Fall throught */
 
-  BitWidth = ts - LastEdgeTime_us;
-  LastEdgeTime_us = ts;
+    case STATE_RECEIVING:
 
-  if (BitWidth <= 12)  //ignore glitches
-  {
-    return;
-  }
+      if (TimingsIndex == 255)
+      {//buffer full - don't accpet anymore
+        return;
+      }
+
+      BitWidth = ts - LastEdgeTime_us;
+      LastEdgeTime_us = ts;
+
+      if (BitWidth <= 12)  //ignore glitches
+      {
+        return;
+      }
   
-  if (BitWidth > 255)
-    BitWidth = 255;
+      if (BitWidth > 255)
+        BitWidth = 255;
 
-  Timings[TimingsIndex++] = (byte)BitWidth;
+      Timings[TimingsIndex++] = (byte)BitWidth;
+      
+      break;
+
+    case STATE_DATA_AVAILABLE:
+      /* DO nothing */
+      break;      
+  }
+}
+
+void CarrierSenseInterrupt()
+{
+  bool carrier = digitalRead(CDPin);
+
+  switch( receiver_state)
+  {
+    case STATE_IDLE:
+      if( carrier == HIGH) {
+        CD_Width = LastEdgeTime_us = micros();
+        receiver_state = STATE_CARRIER_DETECTED;
+      }
+      break;
+
+    case STATE_CARRIER_DETECTED:
+      if( carrier == LOW) {
+        receiver_state = STATE_IDLE;
+      }
+      break;
+
+    case STATE_RECEIVING:
+      if( carrier == LOW) {
+        receiver_state = STATE_DATA_AVAILABLE;
+      }
+      break;
+
+    case STATE_DATA_AVAILABLE:
+      /* DO nothing */
+      break;      
+  }
 }
 
 // ***********************************  end of interrupt handler   *******************************
 
 void InitDataBuffer()
 {
-  BitIndex = 0;
-  BitCount = 0;
-  ValidBlock = false;
-  WaitingFirstEdge  = true;
-  CheckIndex = 0;
   TimingsIndex = 0;
-  SyncFound = false;
-  //digitalWrite(DEBUGPIN, LOW);
 }
 
 void UpdateStatusInfo()
@@ -127,29 +196,4 @@ void UpdateStatusInfo()
   FreqOffset = readStatusReg(CC1101_FREQEST);
   DemodLinkQuality = readStatusReg(CC1101_LQI);
   RSSIvalue = readStatusReg(CC1101_RSSI);
-}
-
-bool ReceiveMessage()
-{
-  InitDataBuffer();
-  
-  //set up timing of edges using interrupts...
-  LastEdgeTime_us = micros();
-  CD_Width = micros();
-
-  attachInterrupt(digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
-  while (GetCarrierStatus() == true)
-  {
-  }
-  detachInterrupt(digitalPinToInterrupt(RXPin));
-
-  CD_Width = micros() - CD_Width;
-  if ((CD_Width >= 9500) && (CD_Width <= 10500))//jayrock set upper border to 10500
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
 }

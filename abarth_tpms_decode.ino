@@ -78,40 +78,58 @@ void setup() {
   digitalWrite(LED_RX, LED_OFF);
 
   setRxState();
+
+  /* Start receiver state machine */
+  InitDataBuffer();
+  receiver_state = STATE_IDLE;
+  attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
+  attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
+
 }
 
 void loop() {
 
-  static long lastts = millis();
+  int ch;
   int ByteCount = 0;
   bool TPMS_Changed;
 
 
+  while( Serial.available()) {
+    ch = Serial.read();
+    
+    if( ch == '\n') {
+      /* Do something ... */
+      for( int i=0; i<4; i++) {
+        Serial.print(i);
+        Serial.print(" Temp    : ");
+        Serial.println( TPMS[i].TPMS_Temperature);
+        Serial.print("  Pressure: ");
+        Serial.println( TPMS[i].TPMS_Pressure);
+      }
+    }
+  }
+
   TPMS_Changed = Check_TPMS_Timeouts();
 
-  //wait for carrier status to go low
-  while (GetCarrierStatus() == true)
+  if ( receiver_state == STATE_DATA_AVAILABLE)
   {
-  }
-
-  //wait for carrier status to go high  looking for rising edge
-  while (GetCarrierStatus() == false)
-  {
-  }
-
-  if (ReceiveMessage())
-  {
-    ByteCount = decode_tpms();
-
-    Serial.print( ByteCount);
-    Serial.println( F(" Bytes decoded"));
-    
-    TPMS_Changed = true;  //indicates the display needs to be updated.
-  }
-  
-    if (TPMS_Changed == true)
+    if ((CD_Width >= 9500) && (CD_Width <= 10500)) //jayrock set upper border to 10500
     {
-      UpdateDisplay();
-      TPMS_Changed = false;
-   }
+      ByteCount = decode_tpms();
+
+      TPMS_Changed = true;  //indicates the display needs to be updated.
+
+      Serial.print( ByteCount);
+      Serial.println( F(" Bytes decoded"));
+    }
+
+    InitDataBuffer();
+    receiver_state = STATE_IDLE;
+  }
+
+  if (TPMS_Changed == true)
+  {
+    UpdateDisplay();
+    TPMS_Changed = false;
+  }
 }

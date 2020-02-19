@@ -18,38 +18,20 @@
 
 const int CC1101_CS = 10;  // Define the Chip Select pin
 const int RXPin = 2;
-
+const int CDPin = 9;       // wlowi: carrier detect pin
 const int DEBUGPIN = 6;
 
-
-const int MAXBITS = 200;
-
-const long Tlong_us = 100;
-const long Tshort_us = 50; //Tlong_us/2;
-const int Ttol_l_us = 25;
-const int Ttol_s_us = 13;
 volatile static unsigned long LastEdgeTime_us = 0;
 
-volatile static bool ValidBlock = false;
-volatile static bool WaitingFirstEdge = true;
 volatile byte Timings[256];
-
 volatile uint8_t TimingsIndex = 0;
-uint8_t CheckIndex = 0;
-bool SyncFound = false;
+
 unsigned long CD_Width;
-byte StartDataIndex = 0;
-
-
-unsigned int BitIndex = 0;
-unsigned int BitCount = 0;
 
 unsigned int FreqOffset;
 unsigned int DemodLinkQuality;
 unsigned int RSSIvalue;
 
-
-int RawCount = 0;
 unsigned long IncomingAddress;
 
 
@@ -59,7 +41,6 @@ const unsigned long PROGMEM IDLookup[]
   0x0F365C01, 0x0F365BEB, 
   0x0F365C1A, 0x0F38CB2F
 };
-
 
 
 #ifdef USE_PROGMEMCRC
@@ -107,7 +88,6 @@ const unsigned long PROGMEM IDLookup[]
       0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB, 0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
   };
 #endif
-
 
 
 struct TPMS_entry

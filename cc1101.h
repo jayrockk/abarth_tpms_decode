@@ -502,12 +502,3 @@ boolean GetCarrierStatus()
     return(true);
   }
 }
-
-void WaitCarrierEnd()
-{
-   while (GetCarrierStatus() == true)
-   {
-       //wait for carrier detect to change to low state
-       delayMicroseconds(100);
-   }
-}
