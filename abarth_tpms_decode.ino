@@ -88,8 +88,13 @@ void setup() {
   dataAvailable_count = 0;
   
   attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
-  attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
-
+  
+  // attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
+  
+  cli();
+  PCMSK0 |= _BV(PCINT1);
+  PCICR |= _BV(PCIE0);
+  sei();
 }
 
 void loop() {
@@ -108,6 +113,8 @@ void loop() {
       Serial.println(carrierDetected_count);
       Serial.print("data available: ");
       Serial.println(dataAvailable_count);
+      Serial.print("cd pin: ");
+      Serial.println(digitalRead(CDPin));
       
       for( int i=0; i<4; i++) {
         Serial.print(i);

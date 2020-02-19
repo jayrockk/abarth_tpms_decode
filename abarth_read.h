@@ -157,9 +157,10 @@ void EdgeInterrupt()
   }
 }
 
-void CarrierSenseInterrupt()
+ISR( PCINT0_vect)
+// void CarrierSenseInterrupt()
 {
-  bool carrier = digitalRead(CDPin);
+  int carrier = digitalRead(CDPin);
 
   switch( receiver_state)
   {
