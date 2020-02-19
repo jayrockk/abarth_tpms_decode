@@ -173,13 +173,13 @@ int decode_tpms()
            Serial.println(F("Checksum OK"));
 #endif
 
-           for (i = 3; i >= 0; i--)
+           for (i = 0; i <= 3; i++)
            {
                id = id << 8;
                id = id + data.bytes[i];
            }
 
-           pressure = (float)data.bytes[5] * 1.38 / 10; //pressure in bar
+           pressure = (float)data.bytes[5] * 1.38 / 100; //pressure in bar
            temperature = data.bytes[6] - 50;
 
 #ifdef SHOWDEGUGINFO
