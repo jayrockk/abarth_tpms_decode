@@ -120,7 +120,7 @@ int decode_tpms()
 
 #ifdef SHOWDEBUGINFO
     Serial.print( TimingsIndex);
-    Serial.println( " timings detected.");
+    Serial.println( F(" timings detected."));
 #endif
 
     if( TimingsIndex > statistics.max_timings) {
@@ -162,14 +162,15 @@ int decode_tpms()
       Serial.println( F(" bytes"));
 #endif
 
-      if( data.length > 9) data.length = 9;
-
+      if( data.length > 9) {
 #ifdef SHOWDEBUGINFO
-      Serial.print( F("Cut that "));
-      Serial.print( data.length);
-      Serial.println( F(" bytes"));
-      print_byte_array( &data);
+        Serial.print( F("Cut at "));
+        Serial.print( data.length);
+        Serial.println( F(" bytes"));
+        print_byte_array( &data);
 #endif
+        data.length = 9;
+      }
 
       if( checksum_xor( &data)) {
 
@@ -220,8 +221,8 @@ int decode_tpms()
               if (TPMS[i].TPMS_ID == 0)
               {
                 UpdateTPMSData(i, id, status, temperature, pressure);
+                break;
               }
-              break;
             }
           }
           else
@@ -363,7 +364,6 @@ byte get_byte( byteArray_t *data, byteLength_t byteno)
     if( byteno < data->capacity) {
         return data->bytes[byteno];
     } else {
-
 
 #ifdef SHOWDEBUGINFO
         Serial.println(F("ERROR IN get_byte(): byteno >= capacity"));
