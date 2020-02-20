@@ -129,7 +129,7 @@ int decode_tpms()
 #ifdef SHOWDEGUGINFO
     Serial.print( decoded_bits.length);
     Serial.println( F(" bits decoded."));
-    print_bit_array( &decoded_bits);
+    //print_bit_array( &decoded_bits);
 #endif
 
     data_start = find_preamble( &decoded_bits, &preamble);
@@ -340,7 +340,8 @@ void print_byte_array( byteArray_t *bytes)
         Serial.print(F("Byte ["));
         Serial.print(i);
         Serial.print(F("]: "));
-        Serial.println( bytes->bytes[i], HEX);
+        Serial.print( bytes->bytes[i], HEX);
+        Serial.print(F("; "));
     }
     Serial.println();
 }
