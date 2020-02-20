@@ -231,20 +231,6 @@ int decode_tpms()
           }
         }
 
-        /*
-        Serial.print("ID      : ");
-        Serial.print( data.bytes[0], HEX);
-        Serial.print( data.bytes[1], HEX);
-        Serial.print( data.bytes[2], HEX);
-        Serial.println( data.bytes[3], HEX);
-            
-        Serial.print("Pressure: ");
-        Serial.println( (float)data.bytes[5] * 1.38 / 100);
-            
-        Serial.print("Temp    : ");
-        Serial.println( data.bytes[6] - 50);
-        */
-
       } else {
 
         statistics.checksum_fails++;

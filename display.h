@@ -93,7 +93,7 @@
     //display.setTextColor(WHITE, BLACK);       // Draw white text
   
     display.setCursor(0, 0);
-    display.println("Abarth TPMS Monitor");
+    display.println(" Abarth TPMS Monitor");
     display.println("   (TWJ Solutions)");
  
   
@@ -150,19 +150,19 @@
       switch (i)
       {
         case 0:
-          x = 0;
+          x = 2;
           y = 2;
           break;
         case 1:
-          x = 59;
+          x = 60;
           y = 2;
           break;
         case 2:
-          x = 0;
+          x = 2;
           y = 5;
           break;
         case 3:
-          x = 59;
+          x = 60;
           y = 5;
           break;
       }
