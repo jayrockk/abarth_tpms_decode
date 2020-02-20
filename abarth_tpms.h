@@ -221,6 +221,7 @@ int decode_tpms()
               {
                 UpdateTPMSData(i, id, status, temperature, pressure);
               }
+              break;
             }
           }
           else
