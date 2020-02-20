@@ -1,5 +1,5 @@
 #define USE_PROGMEMCRC 1
-#define SHOWDEGUGINFO 1
+#define SHOWDEBUGINFO 1
 
 #define I2C_ADDRESS 0x3C
 

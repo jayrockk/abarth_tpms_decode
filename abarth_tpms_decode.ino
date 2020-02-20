@@ -84,8 +84,7 @@ void setup() {
   InitDataBuffer();
   receiver_state = STATE_IDLE;
 
-  carrierDetected_count = 0;
-  dataAvailable_count = 0;
+  clear_statistics();
   
   attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
   
@@ -108,12 +107,8 @@ void loop() {
     ch = Serial.read();
     
     if( ch == '\n') {
-      /* Do something ... */
-      Serial.print("carrier detected: ");
-      Serial.println(carrierDetected_count);
-      Serial.print("data available: ");
-      Serial.println(dataAvailable_count);
-      Serial.print("cd pin: ");
+      dump_statistics();
+      Serial.print("cd pin is: ");
       Serial.println(digitalRead(CDPin));
       
       for( int i=0; i<4; i++) {

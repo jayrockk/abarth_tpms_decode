@@ -31,10 +31,50 @@ static volatile byte receiver_state;
 
 static volatile bool FirstEdgeState = LOW;
 
+typedef struct statistics_t {
+  unsigned long cs_interrupts;
+  unsigned long data_interrupts;
+  unsigned long carrier_detected;
+  unsigned long data_available;
+  unsigned int carrier_len;
+  unsigned int max_timings;
+  unsigned int preamble_found;
+  unsigned int checksum_ok;
+  unsigned int checksum_fails;
+} statistics_t;
 
-static volatile unsigned int carrierDetected_count;
-static volatile unsigned int dataAvailable_count;
+static volatile statistics_t statistics;
 
+/* Note: dump happens unlatched. 
+ * Wrong data may be printed (sometimes).
+ */
+void dump_statistics()
+{
+  Serial.print(F("cs interrupts   : "));
+  Serial.println(statistics.cs_interrupts);
+  Serial.print(F("data interrupts : "));
+  Serial.println(statistics.data_interrupts);
+  Serial.print(F("last carrier us : "));
+  Serial.println(statistics.carrier_len);  
+  Serial.print(F("carrier detected: "));
+  Serial.println(statistics.carrier_detected);
+  Serial.print(F("data available  : "));
+  Serial.println(statistics.data_available);
+  Serial.print(F("max timings     : "));
+  Serial.println(statistics.max_timings);
+  Serial.print(F("preamble found  : "));
+  Serial.println(statistics.preamble_found);
+  Serial.print(F("checksum ok     : "));
+  Serial.println(statistics.checksum_ok);
+  Serial.print(F("checksum failed : "));
+  Serial.println(statistics.checksum_fails);
+}
+
+void clear_statistics()
+{
+  memset( &statistics, 0, sizeof(statistics));
+}
+  
 /**************************************/
 
 void ClearTPMSData(int i)
@@ -99,7 +139,7 @@ boolean Check_TPMS_Timeouts()
 
     if ((TPMS[i].TPMS_ID != 0) && (millis() - TPMS[i].lastupdated > TPMS_TIMEOUT))
     {
-      #ifdef SHOWDEGUGINFO
+      #ifdef SHOWDEBUGINFO
          Serial.println(F("Clearing ID "));
          Serial.println(TPMS[i].TPMS_ID, HEX);
       #endif
@@ -117,7 +157,9 @@ void EdgeInterrupt()
 {
   unsigned long ts = micros();
   unsigned long BitWidth;
- 
+
+  statistics.data_interrupts++;
+  
   switch( receiver_state)
   {
     case STATE_IDLE:
@@ -161,28 +203,33 @@ void EdgeInterrupt()
 ISR( PCINT0_vect)
 // void CarrierSenseInterrupt()
 {
-  int carrier = digitalRead(CDPin);
+  unsigned long ts = micros();
+  byte carrier = digitalRead(CDPin);
+  
+  statistics.cs_interrupts++;
 
   switch( receiver_state)
   {
     case STATE_IDLE:
       if( carrier == HIGH) {
-        CD_Width = LastEdgeTime_us = micros();
+        CD_Width = LastEdgeTime_us = ts;
         receiver_state = STATE_CARRIER_DETECTED;
-        carrierDetected_count++;
+        statistics.carrier_detected++;
       }
       break;
 
     case STATE_CARRIER_DETECTED:
       if( carrier == LOW) {
+        statistics.carrier_len = CD_Width = ts - CD_Width;
         receiver_state = STATE_IDLE;
       }
       break;
 
     case STATE_RECEIVING:
       if( carrier == LOW) {
+        statistics.carrier_len = CD_Width = ts - CD_Width;
         receiver_state = STATE_DATA_AVAILABLE;
-        dataAvailable_count++;
+        statistics.data_available++;
       }
       break;
 
