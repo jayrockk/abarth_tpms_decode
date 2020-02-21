@@ -204,6 +204,9 @@ int decode_tpms()
         { //find a matching ID if it already exists
           if (id == TPMS[i].TPMS_ID)
           {
+#ifdef SHOWDEBUGINFO
+            Serial.println(F("Existing match"));
+#endif
             UpdateTPMSData(i, id, status, temperature, pressure);
             IDFound = true;
             break;
@@ -220,6 +223,9 @@ int decode_tpms()
             {
               if (TPMS[i].TPMS_ID == 0)
               {
+#ifdef SHOWDEBUGINFO
+                Serial.println(F("No match"));
+#endif
                 UpdateTPMSData(i, id, status, temperature, pressure);
                 break;
               }
@@ -227,6 +233,9 @@ int decode_tpms()
           }
           else
           { //found a match in the known ID list...
+#ifdef SHOWDEBUGINFO
+            Serial.println(F("New match"));
+#endif
             UpdateTPMSData(prefindex, id, status, temperature, pressure);
           }
         }
