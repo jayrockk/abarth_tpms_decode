@@ -2,9 +2,9 @@
  * Set below mode according to you preference
  */
 
-#define DISPLAYMODE_SETUP 1 //displays pressure (large) and ID (small)
+//#define DISPLAYMODE_SETUP 1 //displays pressure (large) and ID (small)
+#define DISPLAYMODE_TEMPERATURE 1 //displays temperature (large) and pressure (small)
 //#define DISPLAYMODE_PRESSURE 1 //displays pressure (large) and temperatur (small)
-//#define DISPLAYMODE_TEMPERATURE 1 displays temperature (large) and pressure (small)
 
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiWire.h"
@@ -109,7 +109,7 @@ char DisplayTimeoutBar(unsigned long TimeSinceLastUpdate)
 #endif
 
 
-#if DISPLAYMODE_TEMPERATUR
+#if DISPLAYMODE_TEMPERATURE
 
    void ShowTitle()
   {

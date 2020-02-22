@@ -193,7 +193,7 @@ int decode_tpms()
         Serial.print(F("ID: "));
         Serial.print(id, HEX);
         Serial.print(F("   ID w/ leading zeros: 0x"));
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<= 3; i++) {
           if (data.bytes[i]<0x10) {Serial.print("0");}
           Serial.print(data.bytes[i],HEX);
         }
