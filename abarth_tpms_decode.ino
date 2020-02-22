@@ -94,6 +94,7 @@ void setup() {
   PCMSK0 |= _BV(PCINT1);
   PCICR |= _BV(PCIE0);
   sei();
+
 }
 
 void loop() {

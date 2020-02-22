@@ -192,6 +192,11 @@ int decode_tpms()
 #ifdef SHOWDEBUGINFO
         Serial.print(F("ID: "));
         Serial.print(id, HEX);
+        Serial.print(F("   ID w/ leading zeros: 0x"));
+        for (int i=0; i<3; i++) {
+          if (data.bytes[i]<0x10) {Serial.print("0");}
+          Serial.print(data.bytes[i],HEX);
+        }
         Serial.print(F("   Temperature: "));
         Serial.print(temperature);
         Serial.print(F("   Tyre Pressure: "));
@@ -204,9 +209,6 @@ int decode_tpms()
         { //find a matching ID if it already exists
           if (id == TPMS[i].TPMS_ID)
           {
-#ifdef SHOWDEBUGINFO
-            Serial.println(F("Existing match"));
-#endif
             UpdateTPMSData(i, id, status, temperature, pressure);
             IDFound = true;
             break;
@@ -346,7 +348,8 @@ void print_byte_array( byteArray_t *bytes)
         Serial.print(F("Byte ["));
         Serial.print(i);
         Serial.print(F("]: "));
-        Serial.println( bytes->bytes[i], HEX);
+        Serial.print( bytes->bytes[i], HEX);
+        Serial.print(F("; "));
     }
     Serial.println();
 }
