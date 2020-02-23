@@ -72,8 +72,10 @@ void bit_decode( volatile byte timing[], unsigned int count, bool start_value, b
 bitLength_t find_preamble( bitArray_t *data, bitArray_t *preamble);
 
 void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data);
+void manchester_encode( byteArray_t *data, bitArray_t *bits);
 
-bool checksum_xor( byteArray_t *data);
+bool check_checksum( byteArray_t *data);
+byte checksum_xor( byteArray_t *data, byte bytes);
 
 /********************************************************/
 
@@ -148,17 +150,17 @@ int decode_tpms()
       Serial.print( F("Manchester decode found "));
       Serial.print( data.length);
       Serial.println( F(" bytes"));
+      print_byte_array( &data);
 #endif
 
       if( data.length > 9) {
         data.length = 9;
 #ifdef SHOWDEBUGINFO
         Serial.println( F("Cut at 9 bytes"));
-        print_byte_array( &data);
 #endif
       }
 
-      if( checksum_xor( &data)) {
+      if( check_checksum( &data)) {
 
         statistics.checksum_ok++;
            
@@ -329,13 +331,13 @@ void clear_byte_array( byteArray_t *data)
 void print_byte_array( byteArray_t *bytes)
 {
     byteLength_t i;
-
+    
+    Serial.print(F("Byte"));
     for( i = 0; i < bytes->length; i++) {
-        Serial.print(F("Byte ["));
+        Serial.print(F(" ["));
         Serial.print(i);
-        Serial.print(F("]: "));
+        Serial.print(F("]="));
         Serial.print( bytes->bytes[i], HEX);
-        Serial.print(F("; "));
     }
     Serial.println();
 }
@@ -524,23 +526,35 @@ void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data)
 
 }
 
-/* Einfache XOR checksum.
- */
-bool checksum_xor( byteArray_t *data)
+void manchester_encode( byteArray_t *data, bitArray_t *bits)
 {
-    byteLength_t i;
-    byte checksum;
+
+  
+}
+
+/* 
+ *  Check XOR checksum.
+ *  Compute XOR value of first 8 bytes, than compare with 9th byte.
+ */
+bool check_checksum( byteArray_t *data)
+{
+  byte csum = checksum_xor( data, 8);
+
+  return csum == get_byte( data, 8);
+}
+
+/*
+ * Compute XOR value of first 'count' bytes in data.
+ */
+byte checksum_xor( byteArray_t *data, byte count)
+{
+  byteLength_t i;
+  byte checksum;
     
-    if( data->length > 2) {
-        checksum = 0;
-        for( i=0; i<9; i++) { //for( i=1; i<data->length; i++) {
-            checksum ^= data->bytes[i];
-        }
+  checksum = 0;
+  for( i = 0; i < count; i++) {
+    checksum ^= get_byte( data, i);
+  }
 
-        if( checksum == 0) {
-            return true;
-        }
-    }
-
-    return false;
+  return checksum;
 }

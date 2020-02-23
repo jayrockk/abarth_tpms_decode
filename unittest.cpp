@@ -45,9 +45,13 @@ class SerialOutput {
     }
     
     void print( int b, char f) {
-      printf( "%d", b);
+      if( f == HEX) {
+        printf( "%02x", b);
+      } else {
+        printf( "%d", b);
+      }
     }
-    
+
     void println() {
       printf( "\n");
     }
@@ -61,7 +65,11 @@ class SerialOutput {
     }
     
     void println( int b, char f) {
-      printf( "%d", b);
+      if( f == HEX) {
+        printf( "%02x", b);
+      } else {
+        printf( "%d", b);
+      }
     }
 };
 
@@ -81,8 +89,12 @@ long millis()
 /* ***** ***** */
 
 void check( bool ok);
-static bool unit_test_manchester();
+
 static bool unit_test_bits();
+static bool unit_test_manchester_dec();
+static bool unit_test_manchester_enc();
+static bool unit_test_decode();
+static bool unit_test_encode();
 
 /* ***** ***** */
 
@@ -93,10 +105,12 @@ static int test_failed = 0;
 
 int main( int argc, char *argv[])
 {
-  
-  check( unit_test_manchester());
   check( unit_test_bits());
-
+  check( unit_test_manchester_dec());
+  check( unit_test_manchester_enc());
+  check( unit_test_decode());
+  check( unit_test_encode());
+  
   printf("\n%d tests ok, %d tests failed.\n\n",test_ok, test_failed);
   
   return 0;
@@ -108,45 +122,9 @@ void check( bool ok)
     printf("OK.\n");
     test_ok++;
   } else {
+    printf("FAILED.\n");
     test_failed++;
   }
-}
-
-bool unit_test_manchester()
-{
-  bitArray_t b;
-  byteArray_t data;
-
-  printf("*** unit_test_manchester ***\n");
-  
-  clear_bit_array( &b);
-  clear_byte_array( &data);
-   
-  set_bit( &b, 1, true);
-  set_bit( &b, 2, true);
-  set_bit( &b, 5, true);
-  set_bit( &b, 6, true);
-  set_bit( &b, 8, true);
-  set_bit( &b, 11, true);
-  set_bit( &b, 13, true);
-  set_bit( &b, 15, true);
-  set_bit( &b, 16, true);
-  set_bit( &b, 18, true);
-  set_bit( &b, 21, true);
-   
-  // b.bit_count = 22;
-
-  print_bit_array( &b);
-   
-  manchester_decode( &b, 0, &data);
-
-  print_byte_array( &data);
-
-  if( data.bytes[0] == 0xa7) {
-    return true;
-  }
-    
-  return false;
 }
 
 /* Set and test various bit pattern */
@@ -210,6 +188,114 @@ bool unit_test_bits()
       return false;      
     }
   }
+
+  return true;
+}
+
+bool unit_test_manchester_dec()
+{
+  bitArray_t b;
+  byteArray_t data;
+
+  printf("*** unit_test_manchester_dec ***\n");
+  
+  clear_bit_array( &b);
+  clear_byte_array( &data);
+   
+  set_bit( &b, 1, true);
+  set_bit( &b, 2, true);
+  set_bit( &b, 5, true);
+  set_bit( &b, 6, true);
+  set_bit( &b, 8, true);
+  set_bit( &b, 11, true);
+  set_bit( &b, 13, true);
+  set_bit( &b, 15, true);
+  set_bit( &b, 16, true);
+  set_bit( &b, 18, true);
+  set_bit( &b, 21, true);
+   
+  // b.bit_count = 22;
+
+  print_bit_array( &b);
+   
+  manchester_decode( &b, 0, &data);
+
+  print_byte_array( &data);
+
+  if( data.bytes[0] == 0xa7) {
+    return true;
+  }
+    
+  return false;
+}
+
+bool unit_test_manchester_enc()
+{
+  bitArray_t b;
+  byteArray_t data;
+  
+  printf("*** unit_test_manchester_enc ***\n");
+
+  clear_bit_array( &b);
+  clear_byte_array( &data);
+
+  
+
+  return true;
+}
+
+bool unit_test_decode()
+{
+  int bytes_decoded;
+
+  byte timings[] = {
+    124,48,52,56,56,48,56,52,52,52,52,52,52,52,52,56,52,52,52,52,52,52,52,
+    52,52,52,56,52,52,104,104,52,52,56,52,52,52,100,52,56,52,56,52,48,104,
+    52,52,108,52,52,52,52,104,52,56,52,52,104,52,52,104,52,52,104,104,104,
+    60,48,108,48,52,104,104,112,52,48,56,52,52,52,100,112,52,48,108,52,48,
+    104,60,48,52,52,52,52,104,52,56,104,52,52,52,52,52,52,104,52,52,56,52,
+    104,52,52,52,56,52,52,52,52,104,48,56,108,100,104,40,56,104,104,52,52,
+    108,100,112,52,48,104,52,52,52,56,52,52,104,104,104
+  };
+
+  printf("*** unit_test_decode ***\n");
+
+  TimingsIndex = sizeof(timings)/sizeof(byte);
+  memcpy( (void*)Timings, (void*)timings, TimingsIndex);
+  FirstEdgeState = HIGH;
+ 
+  bytes_decoded = decode_tpms();
+
+  if( bytes_decoded != 9) {
+    return false;
+  }
+  
+  return true;
+}
+
+bool unit_test_encode()
+{
+  bitArray_t b;
+  byteArray_t data;
+  
+  printf("*** unit_test_encode ***\n");
+
+  clear_bit_array( &b);
+  clear_byte_array( &data);
+
+  /* Valid data set. 9th byte is XOR checksum.
+   *   [0]=0f [1]=38 [2]=cb [3]=2f [4]=67 [5]=9e [6]=3e [7]=5b [8]=4f
+   */
+
+  set_byte( &data, 0, 0x0f);
+  set_byte( &data, 1, 0x38);
+  set_byte( &data, 2, 0xcb);
+  set_byte( &data, 3, 0x2f);
+  set_byte( &data, 4, 0x67);
+  set_byte( &data, 5, 0x9e);
+  set_byte( &data, 6, 0x3e);
+  set_byte( &data, 7, 0x4f);
+  
 
   return true;
 }
