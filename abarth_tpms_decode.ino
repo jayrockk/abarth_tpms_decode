@@ -74,27 +74,29 @@ void setup() {
 #endif
 
   InitTPMS();
-
+  UpdateDisplay();
 
   digitalWrite(LED_RX, LED_OFF);
 
   setRxState();
-
+  
   /* Start receiver state machine */
   InitDataBuffer();
+  clear_statistics();
   receiver_state = STATE_IDLE;
 
-  clear_statistics();
-  
   attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
-  
-  // attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
+    // attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
   
   cli();
   PCMSK0 |= _BV(PCINT1);
   PCICR |= _BV(PCIE0);
   sei();
 
+}
+
+ISR( PCINT0_vect) {
+  CarrierSenseInterrupt();
 }
 
 void loop() {

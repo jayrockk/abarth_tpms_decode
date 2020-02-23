@@ -502,3 +502,10 @@ boolean GetCarrierStatus()
     return(true);
   }
 }
+
+void UpdateStatusInfo()
+{
+  FreqOffset = readStatusReg(CC1101_FREQEST);
+  DemodLinkQuality = readStatusReg(CC1101_LQI);
+  RSSIvalue = readStatusReg(CC1101_RSSI);
+}

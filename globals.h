@@ -16,15 +16,15 @@
 #define FONTBAR_1 127
 #define FONTBAR_0 32
 
-const int CC1101_CS = 10;  // Define the Chip Select pin
-const int RXPin = 2;
-const int CDPin = 9;       // wlowi: carrier detect pin
-const int DEBUGPIN = 6;
+const byte CC1101_CS = 10;  // Define the Chip Select pin
+const byte RXPin = 2;
+const byte CDPin = 9;       // wlowi: carrier detect pin
+const byte DEBUGPIN = 6;
 
 volatile static unsigned long LastEdgeTime_us = 0;
 
 volatile byte Timings[256];
-volatile uint8_t TimingsIndex = 0;
+volatile byte TimingsIndex = 0;
 
 unsigned long CD_Width;
 
@@ -43,14 +43,3 @@ struct TPMS_entry
   float TPMS_Pressure;
   float TPMS_Temperature;
 } TPMS[4];
-
-
-enum RXStates
-{
-  Waiting_Byte33 = 0,
-  Got_Byte33,
-  Got_Byte55,
-  Got_Byte53,
-  Manch1,
-  Manch2
-};

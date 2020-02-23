@@ -1,4 +1,4 @@
-#include <Wire.h>
+
 #include "IDLookup.h"
 
 /* Receive state machine:
@@ -72,10 +72,15 @@ void dump_statistics()
 
 void clear_statistics()
 {
-  memset( &statistics, 0, sizeof(statistics));
+  memset( (void*)&statistics, 0, sizeof(statistics));
 }
   
 /**************************************/
+
+void InitDataBuffer()
+{
+  TimingsIndex = 0;
+}
 
 void ClearTPMSData(int i)
 {
@@ -110,9 +115,6 @@ void InitTPMS()
   {
     ClearTPMSData(i);
   }
-
-  UpdateDisplay();
-
 }
 
 void UpdateTPMSData(int index, unsigned long ID, unsigned int status, float Temperature, float Pressure)
@@ -128,12 +130,12 @@ void UpdateTPMSData(int index, unsigned long ID, unsigned int status, float Temp
   TPMS[index].TPMS_Pressure = Pressure;
 }
 
-boolean Check_TPMS_Timeouts()
+bool Check_TPMS_Timeouts()
 {
    byte i;
-   boolean ret = false;
+   bool ret = false;
     
-    //clear any data not updated in the last 5 minutes
+  //clear any data not updated in the last 5 minutes
   for (i = 0; i < 4; i++)
   {
 
@@ -152,6 +154,8 @@ boolean Check_TPMS_Timeouts()
 }
 
 // ********************************************  interrupt handler   *******************************
+
+#ifndef UNITTEST
 
 void EdgeInterrupt()
 {
@@ -200,8 +204,7 @@ void EdgeInterrupt()
   }
 }
 
-ISR( PCINT0_vect)
-// void CarrierSenseInterrupt()
+void CarrierSenseInterrupt()
 {
   unsigned long ts = micros();
   byte carrier = digitalRead(CDPin);
@@ -239,16 +242,6 @@ ISR( PCINT0_vect)
   }
 }
 
+#endif
+
 // ***********************************  end of interrupt handler   *******************************
-
-void InitDataBuffer()
-{
-  TimingsIndex = 0;
-}
-
-void UpdateStatusInfo()
-{
-  FreqOffset = readStatusReg(CC1101_FREQEST);
-  DemodLinkQuality = readStatusReg(CC1101_LQI);
-  RSSIvalue = readStatusReg(CC1101_RSSI);
-}

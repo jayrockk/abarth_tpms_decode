@@ -3,21 +3,9 @@
  *
  */
 
-#include <Arduino.h>
-
-#ifndef byte
-typedef unsigned char byte;
+#ifndef UNITTEST
+# include <Arduino.h>
 #endif
-
-#ifndef bool
-typedef byte bool;
-#endif
-
-#ifndef TRUE
-# define FALSE 0
-# define TRUE (!FALSE)
-#endif
-
 
 /********************************************************/
 
@@ -79,7 +67,7 @@ byte get_byte( byteArray_t *data, byteLength_t byteno);
 void append_byte( byteArray_t *data, byte value);
 
 byte pulse_type( byte time);
-void bit_decode( const byte timing[], unsigned int count, bool start_value, bitArray_t *data);
+void bit_decode( volatile byte timing[], unsigned int count, bool start_value, bitArray_t *data);
 
 bitLength_t find_preamble( bitArray_t *data, bitArray_t *preamble);
 
@@ -163,13 +151,11 @@ int decode_tpms()
 #endif
 
       if( data.length > 9) {
+        data.length = 9;
 #ifdef SHOWDEBUGINFO
-        Serial.print( F("Cut at "));
-        Serial.print( data.length);
-        Serial.println( F(" bytes"));
+        Serial.println( F("Cut at 9 bytes"));
         print_byte_array( &data);
 #endif
-        data.length = 9;
       }
 
       if( checksum_xor( &data)) {
@@ -290,14 +276,14 @@ void print_bit_array( bitArray_t *bits)
 bool get_bit( bitArray_t *bits, bitLength_t bitno)
 {
     if( bitno < bits->capacity) {
-        return (bits->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? TRUE : FALSE;
+        return (bits->bits[bitno/8] & (1 << (7-(bitno % 8)))) ? true : false;
     } else {
 
 #ifdef SHOWDEBUGINFO
         Serial.println( F("ERROR IN get_bit(): bitno >= capacity"));
 #endif
         
-        return FALSE;
+        return false;
     }
 }
 
@@ -416,7 +402,7 @@ byte pulse_type( byte time_usec)
  * Return:
  *   nix
  */
-void bit_decode( const byte timing[], unsigned int count, bool start_value,  bitArray_t *bits)
+void bit_decode( volatile byte timing[], unsigned int count, bool start_value,  bitArray_t *bits)
 {
     unsigned int timing_idx = 0;
     unsigned int timing_len_usec = 0;
@@ -552,9 +538,9 @@ bool checksum_xor( byteArray_t *data)
         }
 
         if( checksum == 0) {
-            return TRUE;
+            return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
