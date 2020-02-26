@@ -82,9 +82,9 @@ long millis()
   return t * 1000 / CLOCKS_PER_SEC;  
 }
 
-#include "globals.h"
-#include "abarth_read.h"
-#include "abarth_tpms.h"
+#include "../globals.h"
+#include "../tpms.h"
+#include "../abarth_tpms.h"
 
 /* ***** ***** */
 
@@ -95,6 +95,7 @@ static bool unit_test_manchester_dec();
 static bool unit_test_manchester_enc();
 static bool unit_test_decode();
 static bool unit_test_encode();
+static bool unit_test_e2e();
 
 /* ***** ***** */
 
@@ -110,8 +111,9 @@ int main( int argc, char *argv[])
   check( unit_test_manchester_enc());
   check( unit_test_decode());
   check( unit_test_encode());
+  check( unit_test_e2e());
   
-  printf("\n%d tests ok, %d tests failed.\n\n",test_ok, test_failed);
+  printf("RESULT: %d tests ok, %d tests failed.\n\n",test_ok, test_failed);
   
   return 0;
 }
@@ -119,10 +121,10 @@ int main( int argc, char *argv[])
 void check( bool ok)
 {
   if( ok) {
-    printf("OK.\n");
+    printf("OK.\n\n");
     test_ok++;
   } else {
-    printf("FAILED.\n");
+    printf("FAILED.\n\n");
     test_failed++;
   }
 }
@@ -231,16 +233,26 @@ bool unit_test_manchester_dec()
 
 bool unit_test_manchester_enc()
 {
-  bitArray_t b;
+  bitArray_t bits;
   byteArray_t data;
   
   printf("*** unit_test_manchester_enc ***\n");
 
-  clear_bit_array( &b);
+  clear_bit_array( &bits);
   clear_byte_array( &data);
 
-  
+  data.bytes[0] = 0xa7;
+  data.length = 1;
 
+  manchester_encode( &data, &bits);
+
+  if( bits.length != 16) {
+    printf("test fail 1\n");
+    return false; 
+  }
+
+  /* TODO: Test bits as well */
+  
   return true;
 }
 
@@ -260,11 +272,7 @@ bool unit_test_decode()
 
   printf("*** unit_test_decode ***\n");
 
-  TimingsIndex = sizeof(timings)/sizeof(byte);
-  memcpy( (void*)Timings, (void*)timings, TimingsIndex);
-  FirstEdgeState = HIGH;
- 
-  bytes_decoded = decode_tpms();
+  bytes_decoded = decode_tpms(timings, sizeof(timings)/sizeof(byte), HIGH);
 
   if( bytes_decoded != 9) {
     return false;
@@ -275,27 +283,175 @@ bool unit_test_decode()
 
 bool unit_test_encode()
 {
-  bitArray_t b;
+  byte checksum;
+  bitLength_t data_start;
+  byteLength_t i;
+  bitArray_t preamble;
+  bitArray_t bits;
   byteArray_t data;
+  byteArray_t dec_data;
   
   printf("*** unit_test_encode ***\n");
 
-  clear_bit_array( &b);
+  clear_bit_array( &bits);
+  clear_bit_array( &preamble);
   clear_byte_array( &data);
-
+  clear_byte_array( &dec_data);
+  
   /* Valid data set. 9th byte is XOR checksum.
    *   [0]=0f [1]=38 [2]=cb [3]=2f [4]=67 [5]=9e [6]=3e [7]=5b [8]=4f
    */
 
-  set_byte( &data, 0, 0x0f);
-  set_byte( &data, 1, 0x38);
-  set_byte( &data, 2, 0xcb);
-  set_byte( &data, 3, 0x2f);
-  set_byte( &data, 4, 0x67);
-  set_byte( &data, 5, 0x9e);
-  set_byte( &data, 6, 0x3e);
-  set_byte( &data, 7, 0x4f);
+  append_byte( &data, 0x0f);
+  append_byte( &data, 0x38);
+  append_byte( &data, 0xcb);
+  append_byte( &data, 0x2f);
+  append_byte( &data, 0x67);
+  append_byte( &data, 0x9e);
+  append_byte( &data, 0x3e);
+  append_byte( &data, 0x5b);
+
+  checksum = checksum_xor( &data, data.length);
+
+  append_byte( &data, checksum);
+
+  if( !check_checksum( &data)) {
+    printf("test fail 1\n");
+    return false; 
+  }
+
+  /* Start with sync and preamble */
+  bits.bits[0] = 0xAA;
+  bits.bits[1] = 0xAA;
+  bits.bits[2] = 0xAA;
+  bits.bits[3] = 0xA9;
+  bits.length = 32;
+
+  /* Add manchester encoded bits */
+  manchester_encode( &data, &bits);
+  print_bit_array( &bits);
+
+  /* Now decode again to check validity */
   
+  preamble.bits[0] = 0xAA;
+  preamble.bits[1] = 0xA9;
+  preamble.length = 16;
+  
+  data_start = find_preamble( &bits, &preamble);
+
+  printf("Data starts at: %d\n", data_start);
+
+  if( data_start == 0) {
+    printf("test fail 2\n");
+    return false;
+  }
+
+  manchester_decode( &bits, data_start, &dec_data);
+  
+  printf("Data length: %d\n", dec_data.length);
+  print_byte_array( &dec_data);
+
+  if( dec_data.length != 9) {
+    printf("test fail 3\n");
+    return false;
+  }
+
+  if( !check_checksum( &dec_data)) {
+    printf("test fail 4\n");
+    return false;    
+  }
+  printf("Checksum ok.\n");
+
+  /* Verify each decoded byte */
+  for( i = 0; i < data.length; i++) {
+    if( !(get_byte( &data, i) == get_byte( &dec_data, i))) {
+      printf("test fail 5\n");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool unit_test_e2e()
+{
+  byte timings[255];
+  unsigned int timing_len;
+  unsigned int bytes_decoded;
+  
+  byte checksum;
+  
+  bitLength_t data_start;
+  bitLength_t bitno;
+  
+  byteLength_t i;
+  bitArray_t preamble;
+  bitArray_t bits;
+  byteArray_t data;
+  byteArray_t dec_data;
+  
+  printf("*** unit_test_e2e ***\n");
+
+  clear_bit_array( &bits);
+  clear_bit_array( &preamble);
+  clear_byte_array( &data);
+  clear_byte_array( &dec_data);
+  
+  /* Valid data set. 9th byte is XOR checksum.
+   *   [0]=0f [1]=38 [2]=cb [3]=2f [4]=67 [5]=9e [6]=3e [7]=5b [8]=4f
+   */
+
+  printf("ENCODING [0]=0f [1]=38 [2]=cb [3]=2f [4]=67 [5]=9e [6]=3e [7]=5b [8]=4f\n");
+
+  append_byte( &data, 0x0f);
+  append_byte( &data, 0x38);
+  append_byte( &data, 0xcb);
+  append_byte( &data, 0x2f);
+  append_byte( &data, 0x67);
+  append_byte( &data, 0x9e);
+  append_byte( &data, 0x3e);
+  append_byte( &data, 0x5b);
+
+  checksum = checksum_xor( &data, data.length);
+
+  append_byte( &data, checksum);
+
+  if( !check_checksum( &data)) {
+    printf("test fail 1\n");
+    return false; 
+  }
+
+  /* Start with sync and preamble */
+  bits.bits[0] = 0xAA;
+  bits.bits[1] = 0xAA;
+  bits.bits[2] = 0xAA;
+  bits.bits[3] = 0xA9;
+  bits.length = 32;
+
+  /* Add manchester encoded bits */
+  manchester_encode( &data, &bits);
+  print_bit_array( &bits);
+
+  /* create timings array from encoded bits */
+  timing_len = 0;
+  for( bitno = 0; bitno < bits.length; bitno++) {
+    if( bitno < bits.length-1 && (get_bit( &bits, bitno) == get_bit( &bits, bitno+1))) {
+      printf("100 "); // long pulse worth two bits
+      timings[timing_len++] = 100;
+      bitno++;
+    } else {
+      printf("50 ");  // short pulse
+      timings[timing_len++] = 50;
+    }
+  }
+  printf("\n");
+
+  /* Decode again */
+  bytes_decoded = decode_tpms(timings, timing_len, HIGH);
+
+  if( bytes_decoded != 9) {
+    return false;
+  }
 
   return true;
 }

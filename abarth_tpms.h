@@ -56,10 +56,13 @@ typedef struct byteArray_t {
 
 /***************** forward defines **********************/
 
-void clear_bit_array( bitArray_t *data);
+int decode_tpms( volatile byte timing_array[], unsigned int timing_count, bool start_edge);
+
+void clear_bit_array( bitArray_t *bits);
 void print_bit_array( bitArray_t *bits);
-bool get_bit( bitArray_t *data, bitLength_t bitno);
-void set_bit( bitArray_t *data, bitLength_t bitno, bool value);
+bool get_bit( bitArray_t *bits, bitLength_t bitno);
+void set_bit( bitArray_t *bits, bitLength_t bitno, bool value);
+void append_bit( bitArray_t *bits, bool value);
 
 void clear_byte_array( byteArray_t *data);
 void print_byte_array( byteArray_t *bytes);
@@ -79,15 +82,21 @@ byte checksum_xor( byteArray_t *data, byte bytes);
 
 /********************************************************/
 
-int decode_tpms()
+int decode_tpms( volatile byte timing_array[], unsigned int timing_count, bool start_edge)
 {
     bitArray_t preamble;
     bitArray_t decoded_bits;   // Decoded timing bits
     byteArray_t data;          // Manchester decoded bytes
 
-    bitLength_t data_start;           // Data start after preamble
+    bitLength_t data_start;    // Data start after preamble
     
     byte a_byte;
+    int i;
+    unsigned long id = 0;
+    unsigned int status = 0;
+    float pressure;
+    float temperature;
+
 
     clear_byte_array( &data);
     
@@ -99,25 +108,16 @@ int decode_tpms()
     preamble.bits[1] = 0xA9;
     preamble.length = 16;
 
-    int i;
-    unsigned long id = 0;
-    unsigned int status = 0;
-    float pressure;
-    float temperature;
-    bool IDFound = false;
-    int prefindex;
-
-
 #ifdef SHOWDEBUGINFO
-    Serial.print( TimingsIndex);
+    Serial.print( timing_count);
     Serial.println( F(" timings detected."));
 #endif
 
-    if( TimingsIndex > statistics.max_timings) {
-      statistics.max_timings = TimingsIndex;
+    if( timing_count > statistics.max_timings) {
+      statistics.max_timings = timing_count;
     }
 
-    bit_decode( Timings, TimingsIndex, FirstEdgeState, &decoded_bits);
+    bit_decode( timing_array, timing_count, start_edge, &decoded_bits);
 
 
 #ifdef SHOWDEBUGINFO
@@ -177,6 +177,8 @@ int decode_tpms()
         pressure = (float)data.bytes[5] * 1.38 / 100; //pressure in bar
         temperature = data.bytes[6] - 50;
 
+        StoreTPMSData( id, status, temperature, pressure);
+
 #ifdef SHOWDEBUGINFO
         Serial.print(F("ID: "));
         Serial.print(id, HEX);
@@ -192,44 +194,6 @@ int decode_tpms()
         Serial.println(F(""));
 #endif
 
-        //update the array of tyres data
-        for (i = 0; i < 4; i++)
-        { //find a matching ID if it already exists
-          if (id == TPMS[i].TPMS_ID)
-          {
-            UpdateTPMSData(i, id, status, temperature, pressure);
-            IDFound = true;
-            break;
-          }
-        }
-
-        //no matching IDs in the array, so see if there is an empty slot to add it into, otherwise, ignore it.
-        if (IDFound == false)
-        {
-          prefindex = GetPreferredIndex(id);
-          if (prefindex == -1)
-          { //not found a specified index, so use the next available one..
-            for (i = 0; i < 4; i++)
-            {
-              if (TPMS[i].TPMS_ID == 0)
-              {
-#ifdef SHOWDEBUGINFO
-                Serial.println(F("No match"));
-#endif
-                UpdateTPMSData(i, id, status, temperature, pressure);
-                break;
-              }
-            }
-          }
-          else
-          { //found a match in the known ID list...
-#ifdef SHOWDEBUGINFO
-            Serial.println(F("New match"));
-#endif
-            UpdateTPMSData(prefindex, id, status, temperature, pressure);
-          }
-        }
-
       } else {
 
         statistics.checksum_fails++;
@@ -242,6 +206,31 @@ int decode_tpms()
     }
 
     return data.length;
+}
+
+
+void encode_tpms( byteArray_t *data, bitArray_t *bits)
+{
+  byte checksum;
+
+  clear_bit_array( bits);
+
+  /* data should contain 8 bytes of valid TPMS data
+   * without checksum
+   */
+   
+  checksum = checksum_xor( data, data->length);
+  append_byte( data, checksum);
+
+  /* Start with sync and preamble */
+  bits->bits[0] = 0xAA;
+  bits->bits[1] = 0xAA;
+  bits->bits[2] = 0xAA;
+  bits->bits[3] = 0xA9;
+  bits->length = 32;
+
+  /* Add manchester encoded bits */
+  manchester_encode( data, bits);
 }
 
 /********************************************************/
@@ -312,6 +301,11 @@ void set_bit( bitArray_t *bits, bitLength_t bitno, bool value)
 #endif
 
     }
+}
+
+void append_bit( bitArray_t *bits, bool value)
+{
+  set_bit( bits, bits->length, value);
 }
 
 /********************************************************/
@@ -416,6 +410,11 @@ void bit_decode( volatile byte timing[], unsigned int count, bool start_value,  
     for( timing_idx = 0; timing_idx < count; timing_idx++) {
         
         timing_len_usec += timing[timing_idx];
+
+#ifdef SHOWDEBUGINFO
+        Serial.print( timing[timing_idx]);
+        Serial.print( " ");
+#endif
         
         switch( pulse_type( timing[timing_idx] ) ) {
         case LONG: /* 2 pulses */
@@ -429,6 +428,10 @@ void bit_decode( volatile byte timing[], unsigned int count, bool start_value,  
 
         level = !level;
     }
+
+#ifdef SHOWDEBUGINFO
+    Serial.println();
+#endif
 }
 
 /********************************************************/
@@ -526,15 +529,36 @@ void manchester_decode( bitArray_t *bits, bitLength_t start, byteArray_t *data)
 
 }
 
+/*
+ * Manchester encodes bytes in byte array 'data' and append 
+ * bits to bits array.
+ */
 void manchester_encode( byteArray_t *data, bitArray_t *bits)
 {
-
+  byte a_byte;
+  bitLength_t bitno;
+  byteLength_t byteno;
+  byte state = 1;
+  byte v;
   
+  for( byteno = 0; byteno < data->length; byteno++) {
+    a_byte = get_byte( data, byteno);
+    
+    for( bitno = 0; bitno < 8; bitno++) {
+      v = (a_byte & (1 << (7-bitno))) >> (7-bitno);
+      append_bit( bits, v ^ state);
+      state = (~state & 1);
+      append_bit( bits, v ^ state);
+      state = (~state & 1);
+    }
+  }
 }
 
 /* 
  *  Check XOR checksum.
  *  Compute XOR value of first 8 bytes, than compare with 9th byte.
+ *  
+ *  Returns true if checksum is ok.
  */
 bool check_checksum( byteArray_t *data)
 {

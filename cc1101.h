@@ -1,3 +1,6 @@
+
+#include <SPI.h>
+
 enum RFSTATE
 {
   RFSTATE_IDLE = 0,
@@ -6,7 +9,9 @@ enum RFSTATE
 };
 
 
-
+unsigned int FreqOffset;
+unsigned int DemodLinkQuality;
+unsigned int RSSIvalue;
 
 
 SPIClass spi;

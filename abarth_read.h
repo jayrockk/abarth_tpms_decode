@@ -1,7 +1,9 @@
-
-#include "IDLookup.h"
-
-/* Receive state machine:
+/*
+ * Receive data from CC1101.
+ * This version of the code is interrupt driven.
+ * 
+ * 
+ * Receive state machine:
  * ======================
  * 
  *     +------------ CDintr ---------+
@@ -29,135 +31,25 @@
 
 static volatile byte receiver_state;
 
-static volatile bool FirstEdgeState = LOW;
+static volatile bool first_edge_state = LOW;
 
-typedef struct statistics_t {
-  unsigned long cs_interrupts;
-  unsigned long data_interrupts;
-  unsigned long carrier_detected;
-  unsigned long data_available;
-  unsigned int carrier_len;
-  unsigned int max_timings;
-  unsigned int preamble_found;
-  unsigned int checksum_ok;
-  unsigned int checksum_fails;
-} statistics_t;
+volatile byte Timings[256];
+volatile byte TimingsIndex = 0;
 
-static volatile statistics_t statistics;
+volatile static unsigned long LastEdgeTime_us = 0;
 
-/* Note: dump happens unlatched. 
- * Wrong data may be printed (sometimes).
- */
-void dump_statistics()
-{
-  Serial.print(F("cs interrupts   : "));
-  Serial.println(statistics.cs_interrupts);
-  Serial.print(F("data interrupts : "));
-  Serial.println(statistics.data_interrupts);
-  Serial.print(F("last carrier us : "));
-  Serial.println(statistics.carrier_len);  
-  Serial.print(F("carrier detected: "));
-  Serial.println(statistics.carrier_detected);
-  Serial.print(F("data available  : "));
-  Serial.println(statistics.data_available);
-  Serial.print(F("max timings     : "));
-  Serial.println(statistics.max_timings);
-  Serial.print(F("preamble found  : "));
-  Serial.println(statistics.preamble_found);
-  Serial.print(F("checksum ok     : "));
-  Serial.println(statistics.checksum_ok);
-  Serial.print(F("checksum failed : "));
-  Serial.println(statistics.checksum_fails);
-}
-
-void clear_statistics()
-{
-  memset( (void*)&statistics, 0, sizeof(statistics));
-}
-  
-/**************************************/
+unsigned long CD_Width;
 
 void InitDataBuffer()
 {
   TimingsIndex = 0;
 }
 
-void ClearTPMSData(int i)
-{
-  if (i > 4)
-    return;
-
-  TPMS[i].TPMS_ID = 0;
-  TPMS[i].lastupdated = 0;
-
-}
-
-int GetPreferredIndex(unsigned long ID)
-{
-  int i;
-
-  for (i = 0; i  < (sizeof(IDLookup) / sizeof(IDLookup[0])); i++)
-  {
-    if (IDLookup[i] == ID)
-    {
-      return (i);
-    }
-
-  }
-  return (-1);
-}
-
-void InitTPMS()
-{
-  int i;
-
-  for (i = 0; i < 4; i++)
-  {
-    ClearTPMSData(i);
-  }
-}
-
-void UpdateTPMSData(int index, unsigned long ID, unsigned int status, float Temperature, float Pressure)
-{
-
-  if (index >= 4)
-    return;
-
-  TPMS[index].TPMS_ID = ID;
-  TPMS[index].TPMS_Status = status;
-  TPMS[index].lastupdated = millis();
-  TPMS[index].TPMS_Temperature = Temperature;
-  TPMS[index].TPMS_Pressure = Pressure;
-}
-
-bool Check_TPMS_Timeouts()
-{
-   byte i;
-   bool ret = false;
-    
-  //clear any data not updated in the last 5 minutes
-  for (i = 0; i < 4; i++)
-  {
-
-    if ((TPMS[i].TPMS_ID != 0) && (millis() - TPMS[i].lastupdated > TPMS_TIMEOUT))
-    {
-      #ifdef SHOWDEBUGINFO
-         Serial.println(F("Clearing ID "));
-         Serial.println(TPMS[i].TPMS_ID, HEX);
-      #endif
-      ClearTPMSData(i);
-      ret = true;
-    }
-
-  }
-  return(ret);
-}
-
 // ********************************************  interrupt handler   *******************************
 
 #ifndef UNITTEST
 
-void EdgeInterrupt()
+void edge_interrupt()
 {
   unsigned long ts = micros();
   unsigned long BitWidth;
@@ -172,7 +64,7 @@ void EdgeInterrupt()
 
     case STATE_CARRIER_DETECTED:
     
-      FirstEdgeState = digitalRead(RXPin);
+      first_edge_state = digitalRead(RXPin);
       receiver_state = STATE_RECEIVING;
       /* Fall throught */
 
@@ -204,7 +96,7 @@ void EdgeInterrupt()
   }
 }
 
-void CarrierSenseInterrupt()
+void carrier_sense_interrupt()
 {
   unsigned long ts = micros();
   byte carrier = digitalRead(CDPin);
@@ -223,14 +115,20 @@ void CarrierSenseInterrupt()
 
     case STATE_CARRIER_DETECTED:
       if( carrier == LOW) {
-        statistics.carrier_len = CD_Width = ts - CD_Width;
+        CD_Width = ts - CD_Width;
+        if( CD_Width > statistics.carrier_len) {
+          statistics.carrier_len = CD_Width;
+        }
         receiver_state = STATE_IDLE;
       }
       break;
 
     case STATE_RECEIVING:
       if( carrier == LOW) {
-        statistics.carrier_len = CD_Width = ts - CD_Width;
+        CD_Width = ts - CD_Width;
+        if( CD_Width > statistics.carrier_len) {
+          statistics.carrier_len = CD_Width;
+        }        
         receiver_state = STATE_DATA_AVAILABLE;
         statistics.data_available++;
       }

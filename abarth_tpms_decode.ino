@@ -1,12 +1,12 @@
+
 #include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
 
 #include "globals.h"
 #include "cc1101.h"
-#include "display.h"
+#include "tpms.h"
 #include "abarth_read.h"
 #include "abarth_tpms.h"
+#include "display.h"
 
 void setup() {
 
@@ -85,8 +85,8 @@ void setup() {
   clear_statistics();
   receiver_state = STATE_IDLE;
 
-  attachInterrupt( digitalPinToInterrupt(RXPin), EdgeInterrupt, CHANGE);
-    // attachInterrupt( digitalPinToInterrupt(CDPin), CarrierSenseInterrupt, CHANGE);
+  attachInterrupt( digitalPinToInterrupt(RXPin), edge_interrupt, CHANGE);
+    // attachInterrupt( digitalPinToInterrupt(CDPin), carrier_sense_interrupt, CHANGE);
   
   cli();
   PCMSK0 |= _BV(PCINT1);
@@ -96,7 +96,7 @@ void setup() {
 }
 
 ISR( PCINT0_vect) {
-  CarrierSenseInterrupt();
+  carrier_sense_interrupt();
 }
 
 void loop() {
@@ -108,8 +108,11 @@ void loop() {
 
   while( Serial.available()) {
     ch = Serial.read();
-    
-    if( ch == '\n') {
+
+    if( ch == 'c') {
+      clear_statistics();
+
+    } else if( ch == '\n') {
       dump_statistics();
       Serial.print("cd pin is: ");
       Serial.println(digitalRead(CDPin));
@@ -130,7 +133,7 @@ void loop() {
   {
     if ((CD_Width >= 9500) && (CD_Width <= 10500)) //jayrock set upper border to 10500
     {
-      ByteCount = decode_tpms();
+      ByteCount = decode_tpms( Timings, TimingsIndex, first_edge_state);
 
       TPMS_Changed = true;  //indicates the display needs to be updated.
 

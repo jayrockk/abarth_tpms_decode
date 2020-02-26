@@ -1,2 +1,7 @@
 IDLookup.h
 unittest
+abarth_tpms_send/abarth_send.h
+abarth_tpms_send/abarth_tpms.h
+abarth_tpms_send/cc1101.h
+abarth_tpms_send/globals.h
+abarth_tpms_send/tpms.h
